@@ -1,0 +1,11 @@
+diff -wBbur icedtea8-forest-d5760f7cce54.orig/common/autoconf/toolchain.m4 icedtea8-forest-d5760f7cce54/common/autoconf/toolchain.m4
+--- openjdk.orig/common/autoconf/toolchain.m4	2017-01-25 05:18:48.000000000 +0100
++++ openjdk/common/autoconf/toolchain.m4	2017-03-12 20:38:26.816480151 +0100
+@@ -130,7 +130,6 @@
+       if test $? -ne 0 ; then
+         AC_MSG_NOTICE([The $COMPILER_NAME compiler (located as $COMPILER) does not seem to be the Clang compiler either.])
+         AC_MSG_NOTICE([The result from running with --version was: "$COMPILER_VERSION_TEST"])
+-        AC_MSG_ERROR([GCC or Clang compiler is required. Try setting --with-tools-dir.])
+       else
+         AC_MSG_WARN([Clang compiler detected. The GCC compiler is recommended.])
+       fi
