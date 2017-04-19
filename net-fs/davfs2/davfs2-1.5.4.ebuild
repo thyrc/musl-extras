@@ -4,7 +4,7 @@
 
 EAPI=6
 
-inherit eutils user
+inherit autotools eutils user
 
 DESCRIPTION="Linux FUSE (or coda) driver that allows you to mount a WebDAV resource"
 HOMEPAGE="https://savannah.nongnu.org/projects/davfs2"
@@ -32,6 +32,8 @@ src_prepare() {
 	epatch "${FILESDIR}"/${PN}-1.5.4-musl-compat.patch
 	epatch "${FILESDIR}"/${PN}-1.5.4-rpmatch_fix.patch
 	eapply_user
+
+	eautoreconf
 }
 
 src_configure() {
