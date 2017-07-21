@@ -1,0 +1,11 @@
+--- openjdk/hotspot/src/os/linux/vm/os_linux.cpp.orig	2017-07-19 15:05:49.643900918 +0200
++++ openjdk/hotspot/src/os/linux/vm/os_linux.cpp	2017-07-19 15:03:43.287230588 +0200
+@@ -2846,7 +2846,7 @@
+ // Handle request to load libnuma symbol version 1.2 (API v2) only.
+ // Return NULL if the symbol is not defined in this particular version.
+ void* os::Linux::libnuma_v2_dlsym(void* handle, const char* name) {
+-  return dlvsym(handle, name, "libnuma_1.2");
++  return dlsym(handle, name);
+ }
+ 
+ bool os::Linux::libnuma_init() {

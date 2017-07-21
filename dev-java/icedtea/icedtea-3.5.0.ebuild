@@ -12,17 +12,18 @@ ICEDTEA_BRANCH=$(get_version_component_range 1-2)
 ICEDTEA_PKG=icedtea-${ICEDTEA_VER}
 ICEDTEA_PRE=$(get_version_component_range _)
 
-CORBA_TARBALL="8eb9dd5fe2fb.tar.xz"
-JAXP_TARBALL="faf1c4a9a51d.tar.xz"
-JAXWS_TARBALL="5f5237104669.tar.xz"
-JDK_TARBALL="3642a826880b.tar.xz"
-LANGTOOLS_TARBALL="d10a13bdc98c.tar.xz"
-OPENJDK_TARBALL="d5760f7cce54.tar.xz"
-NASHORN_TARBALL="8c0fe384c4e7.tar.xz"
-HOTSPOT_TARBALL="6efaf77e82a1.tar.xz"
-SHENANDOAH_TARBALL="d9a978177779.tar.xz"
+CORBA_TARBALL="e53fedec27e8.tar.xz"
+JAXP_TARBALL="a7fb5fa68e85.tar.xz"
+JAXWS_TARBALL="8c2ac8bef689.tar.xz"
+JDK_TARBALL="bdf93656feba.tar.xz"
+LANGTOOLS_TARBALL="0456f88e5c29.tar.xz"
+OPENJDK_TARBALL="ee1282876d8a.tar.xz"
+NASHORN_TARBALL="6743b468dda3.tar.xz"
+HOTSPOT_TARBALL="24ab92601b89.tar.xz"
+SHENANDOAH_TARBALL="098a7fa49b3b.tar.xz"
+AARCH32_TARBALL="b93c39bf2bcf.tar.xz"
 
-CACAO_TARBALL="cacao-c182f119eaad.tar.xz"
+CACAO_TARBALL="cacao-900db2220376.tar.xz"
 JAMVM_TARBALL="jamvm-ec18fb9e49e62dce16c5094ef1527eed619463aa.tar.gz"
 
 CORBA_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-corba-${CORBA_TARBALL}"
@@ -34,6 +35,7 @@ OPENJDK_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-openjdk-${OPENJDK_TARBALL}"
 NASHORN_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-nashorn-${NASHORN_TARBALL}"
 HOTSPOT_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-hotspot-${HOTSPOT_TARBALL}"
 SHENANDOAH_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-shenandoah-${SHENANDOAH_TARBALL}"
+AARCH32_GENTOO_TARBALL="icedtea-${ICEDTEA_BRANCH}-aarch32-${AARCH32_TARBALL}"
 
 CACAO_GENTOO_TARBALL="icedtea-${CACAO_TARBALL}"
 JAMVM_GENTOO_TARBALL="icedtea-${JAMVM_TARBALL}"
@@ -55,6 +57,7 @@ SRC_URI="
 	${ICEDTEA_URL}/nashorn.tar.xz -> ${NASHORN_GENTOO_TARBALL}
 	${ICEDTEA_URL}/langtools.tar.xz -> ${LANGTOOLS_GENTOO_TARBALL}
 	shenandoah? ( ${ICEDTEA_URL}/shenandoah.tar.xz -> ${SHENANDOAH_GENTOO_TARBALL} )
+	arm? ( ${ICEDTEA_URL}/aarch32.tar.xz -> ${AARCH32_GENTOO_TARBALL} )
 	${DROP_URL}/cacao/${CACAO_TARBALL} -> ${CACAO_GENTOO_TARBALL}
 	${DROP_URL}/jamvm/${JAMVM_TARBALL} -> ${JAMVM_GENTOO_TARBALL}"
 
@@ -188,10 +191,11 @@ src_unpack() {
 }
 
 src_configure() {
-	# Link MUSL patches into icedtea build tree
+	# Link musl patches into icedtea build tree
 	ln -s "${FILESDIR}/${PN}-hotspot-musl.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-hotspot-noagent-musl.patch" patches || die
-	ln -s "${FILESDIR}/${PN}-hotspot-uclibc-fixes.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-hotspot-uclibc-fixes.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-hotspot-dlvsym-fix.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-jdk-execinfo.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-jdk-fix-libjvm-load.patch" patches || die
 	ln -s "${FILESDIR}/${PN}-jdk-fix-ipv6-init.patch" patches || die
@@ -208,12 +212,13 @@ src_configure() {
 	local cacao_config config hotspot_port hs_config jamvm_config use_cacao use_jamvm use_zero zero_config
 	local vm=$(java-pkg_get-current-vm)
 
-	# Export MUSL patches for configure
+	# Export musl patches for configure
 	DISTRIBUTION_PATCHES=""
 
 	DISTRIBUTION_PATCHES+="patches/${PN}-hotspot-musl.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-noagent-musl.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}-hotspot-uclibc-fixes.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-uclibc-fixes.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-dlvsym-fix.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-execinfo.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-fix-libjvm-load.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}-jdk-fix-ipv6-init.patch "
@@ -248,7 +253,7 @@ src_configure() {
 
 	# Are we on a architecture with a HotSpot port?
 	# In-tree JIT ports are available for amd64, arm, arm64, ppc64 (be&le), SPARC and x86.
-	if { use amd64 || use arm64 || use ppc64 || use sparc || use x86; }; then
+	if { use amd64 || use arm || use arm64 || use ppc64 || use sparc || use x86; }; then
 		hotspot_port="yes"
 	fi
 
@@ -259,14 +264,18 @@ src_configure() {
 	fi
 
 	if use shenandoah; then
-		if use amd64; then
+		if { use amd64 || use arm64; }; then
 			hs_config="--with-hotspot-build=shenandoah"
 			hs_config+=" --with-hotspot-src-zip="${DISTDIR}/${SHENANDOAH_GENTOO_TARBALL}""
 		else
-			eerror "Shenandoah can only be built on x86_64. Please re-build with USE="-shenandoah""
+			eerror "Shenandoah can only be built on arm64 and x86_64. Please re-build with USE="-shenandoah""
 		fi
 	else
-		hs_config="--with-hotspot-src-zip="${DISTDIR}/${HOTSPOT_GENTOO_TARBALL}""
+		if use arm ; then
+			hs_config="--with-hotspot-src-zip="${DISTDIR}/${AARCH32_GENTOO_TARBALL}""
+		else
+			hs_config="--with-hotspot-src-zip="${DISTDIR}/${HOTSPOT_GENTOO_TARBALL}""
+		fi
 	fi
 
 	# Turn on JamVM if needed (non-HS archs) or requested
@@ -305,6 +314,13 @@ src_configure() {
 		config+=" --disable-ccache"
 	fi
 
+	# PaX breaks pch, bug #601016
+	if use pch && ! host-is-pax; then
+		config+=" --enable-precompiled-headers"
+	else
+		config+=" --disable-precompiled-headers"
+	fi
+
 	config+=" --with-parallel-jobs=$(makeopts_jobs)"
 
 	unset JAVA_HOME JDK_HOME CLASSPATH JAVAC JAVACFLAGS
@@ -335,7 +351,6 @@ src_configure() {
 		$(use_enable doc docs) \
 		$(use_enable kerberos system-kerberos) \
 		$(use_with pax_kernel pax "${EPREFIX}/usr/sbin/paxmark.sh") \
-		$(use_enable pch precompiled-headers) \
 		$(use_enable sctp system-sctp) \
 		$(use_enable smartcard system-pcsc) \
 		$(use_enable sunec) \
