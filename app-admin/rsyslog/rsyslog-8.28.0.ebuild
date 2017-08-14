@@ -11,15 +11,9 @@ HOMEPAGE="http://www.rsyslog.com/"
 BRANCH="8-stable"
 
 if [[ ${PV} == "9999" ]]; then
-	EGIT_REPO_URI="
-		git://github.com/rsyslog/${PN}.git
-		https://github.com/rsyslog/${PN}.git
-	"
+	EGIT_REPO_URI="https://github.com/rsyslog/${PN}.git"
 
-	DOC_REPO_URI="
-		git://github.com/rsyslog/${PN}-doc.git
-		https://github.com/rsyslog/${PN}-doc.git
-	"
+	DOC_REPO_URI="https://github.com/rsyslog/${PN}-doc.git"
 
 	inherit git-r3
 else
@@ -45,7 +39,7 @@ else
 		unset _tmp_last_index
 		unset _tmp_suffix
 	else
-		KEYWORDS="amd64 ~arm ~arm64 ~hppa ~x86"
+		KEYWORDS="amd64 ~arm ~arm64 ~hppa x86"
 	fi
 
 	SRC_URI="
@@ -77,14 +71,14 @@ RDEPEND="
 	mysql? ( virtual/mysql )
 	normalize? (
 		>=dev-libs/libee-0.4.0
-		>=dev-libs/liblognorm-2.0.1:=
+		>=dev-libs/liblognorm-2.0.3:=
 	)
 	omhttpfs? ( >=net-misc/curl-7.35.0 )
 	omudpspoof? ( >=net-libs/libnet-1.1.6 )
 	postgres? ( >=dev-db/postgresql-8.4.20:= )
 	rabbitmq? ( >=net-libs/rabbitmq-c-0.3.0:= )
 	redis? ( >=dev-libs/hiredis-0.11.0:= )
-	relp? ( >=dev-libs/librelp-1.2.12:= )
+	relp? ( >=dev-libs/librelp-1.2.14:= )
 	rfc3195? ( >=dev-libs/liblogging-1.0.1:=[rfc3195] )
 	rfc5424hmac? (
 		!libressl? ( >=dev-libs/openssl-0.9.8y:0= )
@@ -217,6 +211,7 @@ src_configure() {
 		$(use_enable elasticsearch)
 		$(use_enable gcrypt libgcrypt)
 		$(use_enable jemalloc)
+		$(use_enable kafka imkafka)
 		$(use_enable kafka omkafka)
 		$(use_enable kerberos gssapi-krb5)
 		$(use_enable normalize mmnormalize)
