@@ -96,6 +96,7 @@ PATCHES=(
 	"${FILESDIR}/0007-Fix-LLVM-build.patch"
 	"${FILESDIR}/0008-Add-openssl-configuration-for-musl-targets.patch"
 	"${FILESDIR}/0009-liblibc.patch"
+	"${FILESDIR}/0010-static-linking-default.patch"
 	"${FILESDIR}/llvm-musl-fixes.patch"
 )
 
@@ -106,7 +107,14 @@ toml_usex() {
 }
 
 pkg_setup() {
-	use system-llvm && llvm_pkg_setup
+	export RUST_BACKTRACE=1
+	if use system-llvm; then
+		llvm_pkg_setup
+		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
+
+		export LLVM_LINK_SHARED=1
+		export RUSTFLAGS="$RUSTFLAGS -Lnative=$("$llvm_config" --libdir)"
+	fi
 
 	python-any-r1_pkg_setup
 }
@@ -163,14 +171,6 @@ src_configure() {
 }
 
 src_compile() {
-	export RUST_BACKTRACE=1
-	if use system-llvm; then
-		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
-
-		export LLVM_LINK_SHARED=1
-		export RUSTFLAGS="$RUSTFLAGS -Lnative=$("$llvm_config" --libdir)"
-	fi
-
 	./x.py build || die
 }
 
