@@ -59,6 +59,7 @@ DEPEND="${RDEPEND}
 	pgo? ( >=sys-devel/gcc-4.5 )
 	>=virtual/rust-1.19.0
 	>=dev-util/cargo-0.21.0
+	sys-devel/llvm[clang]
 	amd64? ( ${ASM_DEPEND} virtual/opengl )
 	x86? ( ${ASM_DEPEND} virtual/opengl )"
 
@@ -124,7 +125,7 @@ src_unpack() {
 src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
-	epatch "${FILESDIR}"/musl_target_triple.patch
+	epatch "${FILESDIR}"/${PN}-57.0-musl-target-triple.patch
 
 	# Enable gnomebreakpad
 	if use debug ; then
