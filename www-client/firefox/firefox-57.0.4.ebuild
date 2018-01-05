@@ -59,7 +59,7 @@ DEPEND="${RDEPEND}
 	pgo? ( >=sys-devel/gcc-4.5 )
 	>=virtual/rust-1.19.0
 	>=dev-util/cargo-0.21.0
-	sys-devel/llvm[clang]
+	sys-devel/clang
 	amd64? ( ${ASM_DEPEND} virtual/opengl )
 	x86? ( ${ASM_DEPEND} virtual/opengl )"
 
