@@ -5,4 +5,7 @@
     <email>rust@gentoo.org</email>
     <name>Rust Project</name>
   </maintainer>
+  <use>
+    <flag name="system-cargo">Use system <pkg>dev-util/cargo</pkg> instead of downloading pre-built binaries</flag>
+  </use>
 </pkgmetadata>
