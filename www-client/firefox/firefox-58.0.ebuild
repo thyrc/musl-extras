@@ -118,7 +118,6 @@ src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
 	epatch "${FILESDIR}"/${PN}-58.0-disable-mach-only-build.patch
-	epatch "${FILESDIR}"/${PN}-58.0-dont-depend-on-nss-point-release.patch
 
 	# Enable gnomebreakpad
 	if use debug ; then
