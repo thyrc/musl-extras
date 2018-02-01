@@ -64,6 +64,7 @@ RDEPEND="
 	>=dev-libs/libestr-0.1.9
 	>=dev-libs/liblogging-1.0.1:=[stdlog]
 	>=sys-libs/zlib-1.2.5
+	sys-libs/queue
 	curl? ( >=net-misc/curl-7.35.0 )
 	dbi? ( >=dev-db/libdbi-0.8.3 )
 	elasticsearch? ( >=net-misc/curl-7.35.0 )
@@ -218,7 +219,6 @@ src_configure() {
 		$(use_enable debug)
 		$(use_enable debug diagtools)
 		$(use_enable debug memcheck)
-		$(use_enable debug rtinst)
 		$(use_enable debug valgrind)
 		# Misc
 		$(use_enable elasticsearch)
