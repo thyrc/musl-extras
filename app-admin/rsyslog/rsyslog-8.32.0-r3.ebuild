@@ -40,7 +40,7 @@ else
 		unset _tmp_last_index
 		unset _tmp_suffix
 	else
-		KEYWORDS="amd64 ~arm ~arm64 ~hppa ~x86"
+		KEYWORDS="amd64 ~arm ~arm64 ~hppa x86"
 	fi
 
 	SRC_URI="
@@ -219,6 +219,7 @@ src_configure() {
 		$(use_enable debug)
 		$(use_enable debug diagtools)
 		$(use_enable debug memcheck)
+		$(use_enable debug rtinst)
 		$(use_enable debug valgrind)
 		# Misc
 		$(use_enable elasticsearch)
