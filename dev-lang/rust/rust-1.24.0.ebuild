@@ -1,12 +1,12 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
-LLVM_MAX_SLOT=4
+LLVM_MAX_SLOT=5
 PYTHON_COMPAT=( python2_7 )
 
-inherit python-any-r1 versionator toolchain-funcs llvm
+inherit multiprocessing python-any-r1 versionator toolchain-funcs llvm
 
 if [[ ${PV} = *beta* ]]; then
 	betaver=${PV//*beta}
@@ -40,10 +40,11 @@ case "${CHOST}" in
 		RUSTLIBC=${ELIBC/glibc/gnu} ;;
 esac
 RUSTHOST=${RUSTARCH}-unknown-${KERNEL}-${RUSTLIBC}
-STAGE0_VERSION="1.$(($(get_version_component_range 2) - 1)).0"
+STAGE0_VERSION="1.$(($(get_version_component_range 2) - 0)).0"
+CARGO_DEPEND_VERSION="0.$(($(get_version_component_range 2) + 1)).0"
 
 DESCRIPTION="Systems programming language from Mozilla"
-HOMEPAGE="https://www.rust-lang.org/"
+HOMEPAGE="http://www.rust-lang.org/"
 
 SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 # 	!system-rust? (
@@ -70,33 +71,50 @@ SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-IUSE="debug doc jemalloc system-llvm system-rust"
-REQUIRED_USE=""
+IUSE="debug doc extended jemalloc libressl system-llvm system-rust"
 
-RDEPEND="
-	system-llvm? ( sys-devel/llvm:4 )
+RDEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
+		jemalloc? ( dev-libs/jemalloc )
+		system-llvm? ( sys-devel/llvm:5 )
+		extended? (
+			libressl? (
+				>=dev-libs/libressl-2.5.0:=
+				<dev-libs/libressl-2.7.0:=
+			)
+			!libressl? ( dev-libs/openssl:0= )
+			net-libs/http-parser:=
+			net-libs/libssh2:=
+			net-misc/curl:=[ssl]
+			sys-libs/zlib:=
+			!dev-util/rustfmt
+			!dev-util/cargo
+		)
 "
 DEPEND="${RDEPEND}
 	${PYTHON_DEPS}
-	>=sys-devel/gcc-4.7
+	|| (
+		>=sys-devel/gcc-4.7
+		>=sys-devel/clang-3.5
+	)
 	!system-llvm? (
-		dev-util/cmake
+		>=dev-util/cmake-3.4.3
 		dev-util/ninja
 	)
 "
-PDEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
-	|| ( dev-util/cargo dev-util/cargo-bin )
-"
+PDEPEND="!extended? ( >=dev-util/cargo-${CARGO_DEPEND_VERSION} )"
 
 PATCHES=(
-	"${FILESDIR}/${PN}-1.22.1-0004-require-static-native-libraries.patch"
-	"${FILESDIR}/${PN}-1.22.1-0005-remove-nostdlib-and-musl_root.patch"
-	"${FILESDIR}/${PN}-1.22.1-0006-prefer-libgcc_eh-over-libunwind.patch"
-	"${FILESDIR}/${PN}-1.22.1-0007-fix-llvm-build.patch"
-	"${FILESDIR}/${PN}-1.22.1-0008-add-openssl-configuration.patch"
-	"${FILESDIR}/${PN}-1.22.1-0009-remove-target_feature-cfg.patch"
-	"${FILESDIR}/${PN}-1.22.1-0010-remove-crt_static_default.patch"
-	"${FILESDIR}/${PN}-1.22.1-0011-llvm-avoid-name-conflicts.patch"
+	"${FILESDIR}/1.23.0-separate-libdir.patch"
+	"${FILESDIR}/0001-Require-static-native-libraries-when-linking-static-.patch"
+	"${FILESDIR}/0003-Switch-musl-targets-to-link-dynamically-by-default.patch"
+	"${FILESDIR}/0004-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
+	"${FILESDIR}/${PN}-1.24.0-0005-remove-nostdlib-and-musl_root.patch"
+	"${FILESDIR}/0005-Fix-LLVM-build.patch"
+	"${FILESDIR}/0006-Fix-rustdoc-for-cross-targets.patch"
+	"${FILESDIR}/0007-Add-openssl-configuration-for-musl-targets.patch"
+	"${FILESDIR}/0008-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
+	"${FILESDIR}/0009-liblibc.patch"
+	"${FILESDIR}/llvm-musl-fixes.patch"
 )
 
 S="${WORKDIR}/${MY_P}-src"
@@ -120,7 +138,7 @@ pkg_setup() {
 
 src_prepare() {
 	default
-	
+
 	if ! use system-rust; then
 		"${WORKDIR}/rust-${STAGE0_VERSION}-${RUSTHOST}/install.sh" \
 			--prefix="${WORKDIR}/stage0" \
@@ -134,15 +152,17 @@ src_configure() {
 	cat <<- EOF > "${S}"/config.toml
 		[llvm]
 		ninja = true
+		optimize = $(toml_usex !debug)
+		release-debuginfo = $(toml_usex debug)
+		assertions = $(toml_usex debug)
 		[build]
 		build = "${RUSTHOST}"
 		host = ["${RUSTHOST}"]
 		target = ["${RUSTHOST}"]
 	EOF
 	use system-rust && cat <<- EOF >> "${S}"/config.toml
-		configure-args = ['--enable-local-rust']
-		cargo = '/usr/bin/cargo'
-		rustc = '/usr/bin/rustc'
+		cargo = "/usr/bin/cargo"
+		rustc = "/usr/bin/rustc"
 	EOF
 	use !system-rust && cat <<- EOF >> "${S}"/config.toml
 		cargo = "${WORKDIR}/stage0/bin/cargo"
@@ -155,25 +175,29 @@ src_configure() {
 		python = "${EPYTHON}"
 		locked-deps = true
 		vendor = true
-		verbose = 2
+		extended = $(toml_usex extended)
 		[install]
 		prefix = "${EPREFIX}/usr"
-		docdir = "share/doc/${P}"
 		libdir = "$(get_libdir)"
+		docdir = "share/doc/${P}"
 		mandir = "share/${P}/man"
 		[rust]
 		optimize = $(toml_usex !debug)
-		debug-assertions = $(toml_usex debug)
 		debuginfo = $(toml_usex debug)
+		debug-assertions = $(toml_usex debug)
 		use-jemalloc = $(toml_usex jemalloc)
+		default-linker = "$(tc-getCC)"
 		channel = "${SLOT%%/*}"
 		rpath = false
+		optimize-tests = $(toml_usex !debug)
+		dist-src = $(toml_usex debug)
 		[dist]
 		src-tarball = false
 		[target.${RUSTHOST}]
-		cc = "$(tc-getCC)"
-		cxx = "$(tc-getCXX)"
-		crt-static = false
+		cc = "$(tc-getBUILD_CC)"
+		cxx = "$(tc-getBUILD_CXX)"
+		linker = "$(tc-getCC)"
+		ar = "$(tc-getAR)"
 	EOF
 	use system-llvm && cat <<- EOF >> "${S}"/config.toml
 		llvm-config = "$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
@@ -181,25 +205,40 @@ src_configure() {
 }
 
 src_compile() {
-	./x.py build || die
+	./x.py build -j$(makeopts_jobs) || die
 }
 
 src_install() {
-	env DESTDIR="${D}" ./x.py install || die
+	env DESTDIR="${D}" ./x.py install -j$(makeopts_jobs) || die
 
-	rm "${D}/usr/lib/rustlib/components" || die
-	rm "${D}/usr/lib/rustlib/install.log" || die
-	rm "${D}/usr/lib/rustlib/manifest-rust-std-${RUSTHOST}" || die
-	rm "${D}/usr/lib/rustlib/manifest-rustc" || die
-	rm "${D}/usr/lib/rustlib/rust-installer-version" || die
-	rm "${D}/usr/lib/rustlib/uninstall.sh" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/components" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/install.log" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-std-${RUSTHOST}" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/manifest-rustc" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/rust-installer-version" || die
+	rm "${D}/usr/$(get_libdir)/rustlib/uninstall.sh" || die
 
 	mv "${D}/usr/bin/rustc" "${D}/usr/bin/rustc-${PV}" || die
 	mv "${D}/usr/bin/rustdoc" "${D}/usr/bin/rustdoc-${PV}" || die
 	mv "${D}/usr/bin/rust-gdb" "${D}/usr/bin/rust-gdb-${PV}" || die
 	mv "${D}/usr/bin/rust-lldb" "${D}/usr/bin/rust-lldb-${PV}" || die
 
-	dodoc COPYRIGHT
+	if use doc; then
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-docs" || die
+	fi
+
+	if use extended; then
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-cargo" || die
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rls-preview" || die
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-analysis-${RUSTHOST}" || die
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-src" || die
+		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rustfmt-preview" || die
+	fi
+
+	rm "${D}/usr/share/doc/${P}/LICENSE-APACHE" || die
+	rm "${D}/usr/share/doc/${P}/LICENSE-MIT" || die
+
+	docompress "/usr/share/${P}/man"
 
 	cat <<-EOF > "${T}"/50${P}
 		MANPATH="/usr/share/${P}/man"
@@ -219,8 +258,8 @@ src_install() {
 pkg_postinst() {
 	eselect rust update --if-unset
 
-	elog "Rust installs a helper script for calling GDB now,"
-	elog "for your convenience it is installed under /usr/bin/rust-gdb-${PV}."
+	elog "Rust installs a helper script for calling GDB and LLDB,"
+	elog "for your convenience it is installed under /usr/bin/rust-{gdb,lldb}-${PV}."
 
 	if has_version app-editors/emacs || has_version app-editors/emacs-vcs; then
 		elog "install app-emacs/rust-mode to get emacs support for rust."
