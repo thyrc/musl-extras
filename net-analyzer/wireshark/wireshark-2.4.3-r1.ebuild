@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -10,11 +10,11 @@ SRC_URI="${HOMEPAGE}download/src/all-versions/${P/_/}.tar.xz"
 
 LICENSE="GPL-2"
 SLOT="0/${PV}"
-KEYWORDS="amd64 ~arm ~arm64 hppa ~ppc ~ppc64 x86 ~x86-fbsd"
+KEYWORDS="amd64 arm ~arm64 ~hppa ia64 ppc ppc64 x86 ~x86-fbsd"
 IUSE="
 	adns androiddump +capinfos +caps +captype ciscodump cpu_flags_x86_sse4_2
 	+dftest doc doc-pdf +dumpcap +editcap geoip gtk kerberos libssh libxml2 lua
-	+mergecap +netlink nghttp2 +pcap portaudio +qt5 +randpkt +randpktdump
+	lz4 +mergecap +netlink nghttp2 +pcap portaudio +qt5 +randpkt +randpktdump
 	+reordercap sbc selinux +sharkd smi snappy spandsp sshdump ssl +text2pcap
 	tfshark +tshark +udpdump zlib
 "
@@ -42,6 +42,7 @@ CDEPEND="
 	libssh? ( >=net-libs/libssh-0.6 )
 	libxml2? ( dev-libs/libxml2 )
 	lua? ( >=dev-lang/lua-5.1:* )
+	lz4? ( app-arch/lz4 )
 	nghttp2? ( net-libs/nghttp2 )
 	pcap? ( net-libs/libpcap )
 	portaudio? ( media-libs/portaudio )
@@ -51,7 +52,10 @@ CDEPEND="
 		dev-qt/qtmultimedia:5
 		dev-qt/qtprintsupport:5
 		dev-qt/qtwidgets:5
-		media-libs/speex
+		|| (
+			media-libs/speexdsp
+			<media-libs/speex-1.2.0
+		)
 		x11-misc/xdg-utils
 	)
 	sbc? ( media-libs/sbc )
@@ -94,6 +98,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.1.0-sse4_2-r1.patch
 	"${FILESDIR}"/${PN}-2.4-androiddump.patch
 	"${FILESDIR}"/${PN}-99999999-androiddump.patch
+	"${FILESDIR}"/${PN}-2.4.3-libsmi.patch
 	"${FILESDIR}"/${PN}-2.4.2-timeval_struct.patch
 )
 
@@ -143,8 +148,6 @@ src_configure() {
 	use doc || export ac_cv_prog_HAVE_DOXYGEN=false
 	use doc-pdf || export ac_cv_prog_HAVE_FOP=false
 
-	# dumpcap requires libcap
-	# --disable-profile-build bugs #215806, #292991, #479602
 	econf \
 		$(use androiddump && use pcap && echo --enable-androiddump-use-libpcap=yes) \
 		$(use dumpcap && use_with pcap dumpcap-group wireshark) \
@@ -170,9 +173,10 @@ src_configure() {
 		$(use_with geoip) \
 		$(use_with gtk gtk 3) \
 		$(use_with kerberos krb5) \
-		$(use_with libssh ssh) \
+		$(use_with libssh) \
 		$(use_with libxml2) \
 		$(use_with lua) \
+		$(use_with lz4) \
 		$(use_with nghttp2) \
 		$(use_with pcap) \
 		$(use_with portaudio) \
