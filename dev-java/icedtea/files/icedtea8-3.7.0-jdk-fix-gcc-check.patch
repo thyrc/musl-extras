@@ -1,0 +1,12 @@
+diff --git openjdk/common/autoconf/toolchain.m4 openjdk/common/autoconf/toolchain.m4
+index 7506dfc..af7cce2 100644
+--- openjdk/common/autoconf/toolchain.m4
++++ openjdk/common/autoconf/toolchain.m4
+@@ -130,7 +130,6 @@ AC_DEFUN([TOOLCHAIN_EXTRACT_COMPILER_VERSION],
+       if test $? -ne 0 ; then
+         AC_MSG_NOTICE([The $COMPILER_NAME compiler (located as $COMPILER) does not seem to be the Clang compiler either.])
+         AC_MSG_NOTICE([The result from running with --version was: "$COMPILER_VERSION_TEST"])
+-        AC_MSG_ERROR([GCC or Clang compiler is required. Try setting --with-tools-dir.])
+       else
+         AC_MSG_WARN([Clang compiler detected. The GCC compiler is recommended.])
+       fi

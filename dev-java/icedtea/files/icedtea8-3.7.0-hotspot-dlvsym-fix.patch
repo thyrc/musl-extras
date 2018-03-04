@@ -1,0 +1,13 @@
+diff --git openjdk/hotspot/src/os/linux/vm/os_linux.cpp openjdk/hotspot/src/os/linux/vm/os_linux.cpp
+index 70c82b2..9234372 100644
+--- openjdk/hotspot/src/os/linux/vm/os_linux.cpp
++++ openjdk/hotspot/src/os/linux/vm/os_linux.cpp
+@@ -2846,7 +2846,7 @@ void* os::Linux::libnuma_dlsym(void* handle, const char *name) {
+ // Handle request to load libnuma symbol version 1.2 (API v2) only.
+ // Return NULL if the symbol is not defined in this particular version.
+ void* os::Linux::libnuma_v2_dlsym(void* handle, const char* name) {
+-  return dlvsym(handle, name, "libnuma_1.2");
++  return dlsym(handle, name);
+ }
+ 
+ bool os::Linux::libnuma_init() {
