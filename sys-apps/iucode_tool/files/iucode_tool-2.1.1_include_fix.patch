@@ -1,0 +1,10 @@
+--- iucode_tool.c.orig	2018-03-14 18:16:24.783182156 +0100
++++ iucode_tool.c	2018-03-14 18:16:57.672840267 +0100
+@@ -31,6 +31,7 @@
+ #include <dirent.h>
+ #include <time.h>
+ #include <cpuid.h>
++#include <limits.h>
+ 
+ #include "intel_microcode.h"
+ 
