@@ -1,0 +1,12 @@
+diff --git a/src/libunwind/lib.rs b/src/libunwind/lib.rs
+index 5347c78..e9be63f 100644
+--- a/src/libunwind/lib.rs
++++ b/src/libunwind/lib.rs
+@@ -36,6 +36,6 @@ cfg_if! {
+ }
+ 
+ #[cfg(target_env = "musl")]
+-#[link(name = "unwind", kind = "static", cfg(target_feature = "crt-static"))]
++#[link(name = "gcc_eh", cfg(target_feature = "crt-static"))]
+ #[link(name = "gcc_s", cfg(not(target_feature = "crt-static")))]
+ extern {}

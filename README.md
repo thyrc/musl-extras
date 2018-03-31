@@ -1,7 +1,7 @@
 # musl-extras
-Extra ebuilds for Gentoo systems, mostly packages fixed to work with musl
+Extra ebuilds for Gentoo systems, mostly packages fixed to work with musl.
 
-This ist just my personal playground to get things running on my own system.
+This is just my personal playground to get things running on my own system.
 
 For a more professional approach have a look at
 * https://github.com/smaeul (https://github.com/smaeul/portage-overlay.git)
