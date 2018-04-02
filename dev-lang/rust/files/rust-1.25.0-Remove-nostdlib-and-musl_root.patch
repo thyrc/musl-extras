@@ -102,6 +102,69 @@ index e531fda..3f49a2c 100644
          _ => {}
      }
  }
+diff --git a/src/bootstrap/compile.rs b/src/bootstrap/compile.rs
+index c85b04d..c01c234 100644
+--- a/src/bootstrap/compile.rs
++++ b/src/bootstrap/compile.rs
+@@ -78,13 +78,6 @@ impl Step for Std {
+             });
+             println!("Uplifting stage1 std ({} -> {})", from.host, target);
+ 
+-            // Even if we're not building std this stage, the new sysroot must
+-            // still contain the musl startup objects.
+-            if target.contains("musl") {
+-                let libdir = builder.sysroot_libdir(compiler, target);
+-                copy_musl_third_party_objects(build, target, &libdir);
+-            }
+-
+             builder.ensure(StdLink {
+                 compiler: from,
+                 target_compiler: compiler,
+@@ -97,11 +90,6 @@ impl Step for Std {
+         println!("Building stage{} std artifacts ({} -> {})", compiler.stage,
+                 &compiler.host, target);
+ 
+-        if target.contains("musl") {
+-            let libdir = builder.sysroot_libdir(compiler, target);
+-            copy_musl_third_party_objects(build, target, &libdir);
+-        }
+-
+         let out_dir = build.stage_out(compiler, Mode::Libstd);
+         build.clear_if_dirty(&out_dir, &builder.rustc(compiler));
+         let mut cargo = builder.cargo(compiler, Mode::Libstd, target, "build");
+@@ -119,20 +107,6 @@ impl Step for Std {
+     }
+ }
+ 
+-/// Copies the crt(1,i,n).o startup objects
+-///
+-/// Since musl supports fully static linking, we can cross link for it even
+-/// with a glibc-targeting toolchain, given we have the appropriate startup
+-/// files. As those shipped with glibc won't work, copy the ones provided by
+-/// musl so we have them on linux-gnu hosts.
+-fn copy_musl_third_party_objects(build: &Build,
+-                                 target: Interned<String>,
+-                                 into: &Path) {
+-    for &obj in &["crt1.o", "crti.o", "crtn.o"] {
+-        copy(&build.musl_root(target).unwrap().join("lib").join(obj), &into.join(obj));
+-    }
+-}
+-
+ /// Configure cargo to compile the standard library, adding appropriate env vars
+ /// and such.
+ pub fn std_cargo(build: &Build,
+@@ -174,11 +148,6 @@ pub fn std_cargo(build: &Build,
+             cargo.env("JEMALLOC_OVERRIDE", jemalloc);
+         }
+     }
+-    if target.contains("musl") {
+-        if let Some(p) = build.musl_root(target) {
+-            cargo.env("MUSL_ROOT", p);
+-        }
+-    }
+ }
+ 
+ #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 diff --git a/src/bootstrap/config.rs b/src/bootstrap/config.rs
 index f3810ac..87f4fb0 100644
 --- a/src/bootstrap/config.rs
@@ -187,10 +250,10 @@ index 99a3ee4..5357d3a 100755
    "rootfs in qemu testing, you probably don't want to use this")
  v("qemu-aarch64-rootfs", "target.aarch64-unknown-linux-gnu.qemu-rootfs",
 diff --git a/src/bootstrap/lib.rs b/src/bootstrap/lib.rs
-index 8ed5e9f..a3aaa3c 100644
+index afd740c..428f3ad 100644
 --- a/src/bootstrap/lib.rs
 +++ b/src/bootstrap/lib.rs
-@@ -701,14 +701,6 @@ impl Build {
+@@ -700,14 +700,6 @@ impl Build {
          }
      }
  
@@ -206,9 +269,18 @@ index 8ed5e9f..a3aaa3c 100644
      /// and `remote-test-server` binaries.
      fn remote_tested(&self, target: Interned<String>) -> bool {
 diff --git a/src/bootstrap/sanity.rs b/src/bootstrap/sanity.rs
-index 5184cca..6bfc327 100644
+index 5184cca..defc85e 100644
 --- a/src/bootstrap/sanity.rs
 +++ b/src/bootstrap/sanity.rs
+@@ -21,7 +21,7 @@
+ use std::collections::HashMap;
+ use std::env;
+ use std::ffi::{OsString, OsStr};
+-use std::fs::{self, File};
++use std::fs::File;
+ use std::io::Read;
+ use std::path::PathBuf;
+ use std::process::Command;
 @@ -169,34 +169,6 @@ pub fn check(build: &mut Build) {
              panic!("the iOS target is only supported on macOS");
          }
@@ -318,67 +390,4 @@ index f63dd23..bb786bf 100644
 -
      // These targets allow the user to choose between static and dynamic linking.
      base.crt_static_respected = true;
-
-diff --git a/src/bootstrap/compile.rs b/src/bootstrap/compile.rs
-index c85b04d..c01c234 100644
---- a/src/bootstrap/compile.rs
-+++ b/src/bootstrap/compile.rs
-@@ -78,13 +78,6 @@ impl Step for Std {
-             });
-             println!("Uplifting stage1 std ({} -> {})", from.host, target);
  
--            // Even if we're not building std this stage, the new sysroot must
--            // still contain the musl startup objects.
--            if target.contains("musl") {
--                let libdir = builder.sysroot_libdir(compiler, target);
--                copy_musl_third_party_objects(build, target, &libdir);
--            }
--
-             builder.ensure(StdLink {
-                 compiler: from,
-                 target_compiler: compiler,
-@@ -97,11 +90,6 @@ impl Step for Std {
-         println!("Building stage{} std artifacts ({} -> {})", compiler.stage,
-                 &compiler.host, target);
- 
--        if target.contains("musl") {
--            let libdir = builder.sysroot_libdir(compiler, target);
--            copy_musl_third_party_objects(build, target, &libdir);
--        }
--
-         let out_dir = build.stage_out(compiler, Mode::Libstd);
-         build.clear_if_dirty(&out_dir, &builder.rustc(compiler));
-         let mut cargo = builder.cargo(compiler, Mode::Libstd, target, "build");
-@@ -119,20 +107,6 @@ impl Step for Std {
-     }
- }
- 
--/// Copies the crt(1,i,n).o startup objects
--///
--/// Since musl supports fully static linking, we can cross link for it even
--/// with a glibc-targeting toolchain, given we have the appropriate startup
--/// files. As those shipped with glibc won't work, copy the ones provided by
--/// musl so we have them on linux-gnu hosts.
--fn copy_musl_third_party_objects(build: &Build,
--                                 target: Interned<String>,
--                                 into: &Path) {
--    for &obj in &["crt1.o", "crti.o", "crtn.o"] {
--        copy(&build.musl_root(target).unwrap().join("lib").join(obj), &into.join(obj));
--    }
--}
--
- /// Configure cargo to compile the standard library, adding appropriate env vars
- /// and such.
- pub fn std_cargo(build: &Build,
-@@ -174,11 +148,6 @@ pub fn std_cargo(build: &Build,
-             cargo.env("JEMALLOC_OVERRIDE", jemalloc);
-         }
-     }
--    if target.contains("musl") {
--        if let Some(p) = build.musl_root(target) {
--            cargo.env("MUSL_ROOT", p);
--        }
--    }
- }
- 
- #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

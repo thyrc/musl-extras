@@ -6,7 +6,7 @@ EAPI=6
 LLVM_MAX_SLOT=6
 PYTHON_COMPAT=( python2_7 )
 
-inherit multiprocessing python-any-r1 versionator toolchain-funcs llvm
+inherit check-reqs multiprocessing python-any-r1 versionator toolchain-funcs llvm
 
 if [[ ${PV} = *beta* ]]; then
 	betaver=${PV//*beta}
@@ -41,7 +41,7 @@ case "${CHOST}" in
 esac
 RUSTHOST=${RUSTARCH}-unknown-${KERNEL}-${RUSTLIBC}
 STAGE0_VERSION="1.$(($(get_version_component_range 2) - 0)).0"
-CARGO_DEPEND_VERSION="0.$(($(get_version_component_range 2) + 0)).0"
+CARGO_DEPEND_VERSION="0.$(($(get_version_component_range 2) + 1)).0"
 
 DESCRIPTION="Systems programming language from Mozilla"
 HOMEPAGE="http://www.rust-lang.org/"
@@ -107,7 +107,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-1.25.0-Require-static-native-libraries-when-linking-static-.patch"
 	"${FILESDIR}/${PN}-1.25.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
 	"${FILESDIR}/${PN}-1.25.0-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
-	"${FILESDIR}/${PN}-1.25.0-remove-nostdlib-and-musl_root.patch"
+	"${FILESDIR}/${PN}-1.25.0-Remove-nostdlib-and-musl_root.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-LLVM-build.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-rustdoc-for-cross-targets.patch"
 	"${FILESDIR}/${PN}-1.25.0-Add-openssl-configuration-for-musl-targets.patch"
@@ -120,6 +120,17 @@ S="${WORKDIR}/${MY_P}-src"
 
 toml_usex() {
 	usex "$1" true false
+}
+
+pkg_pretend() {
+	# Ensure we have enough disk space to compile
+	if use extended; then
+		CHECKREQS_DISK_BUILD="6G"
+	else
+		CHECKREQS_DISK_BUILD="4G"
+	fi
+
+	check-reqs_pkg_setup
 }
 
 pkg_setup() {
@@ -175,6 +186,7 @@ src_configure() {
 		locked-deps = true
 		vendor = true
 		extended = $(toml_usex extended)
+		tools = ["cargo", "rls", "rustfmt", "clippy-driver", "rustdoc", "analysis", "src"]
 		[install]
 		prefix = "${EPREFIX}/usr"
 		libdir = "$(get_libdir)"
@@ -189,6 +201,7 @@ src_configure() {
 		channel = "${SLOT%%/*}"
 		rpath = false
 		optimize-tests = $(toml_usex !debug)
+		codegen-tests = true
 		dist-src = $(toml_usex debug)
 		[dist]
 		src-tarball = false
