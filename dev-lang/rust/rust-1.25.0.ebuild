@@ -71,7 +71,15 @@ SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-IUSE="debug doc extended jemalloc libressl system-llvm system-rust"
+RUST_TOOLS=(
+	cargo rls rustfmt rustdoc analysis src clippy-driver miri
+)
+
+IUSE_RUST_EXTENDED_TOOLS=(
+	${RUST_TOOLS[@]/#/rust_tools_}
+)
+
+IUSE="debug doc extended jemalloc libressl system-llvm system-rust ${IUSE_RUST_EXTENDED_TOOLS[@]/#/+}"
 
 RDEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		jemalloc? ( dev-libs/jemalloc )
@@ -159,6 +167,17 @@ src_prepare() {
 }
 
 src_configure() {
+	RUST_ETOOLS=""
+	local u c
+	for u in ${IUSE_RUST_EXTENDED_TOOLS[@]}; do
+		if ! use ${u}; then
+			continue
+		fi
+		c=${u#rust_tools_}
+		RUST_ETOOLS+="\"${c}\", "
+	done
+	RUST_ETOOLS="[${RUST_ETOOLS%, }]"
+
 	cat <<- EOF > "${S}"/config.toml
 		[llvm]
 		ninja = true
@@ -186,7 +205,7 @@ src_configure() {
 		locked-deps = true
 		vendor = true
 		extended = $(toml_usex extended)
-		tools = ["cargo", "rls", "rustfmt", "clippy-driver", "rustdoc", "analysis", "src"]
+		tools = ${RUST_ETOOLS}
 		[install]
 		prefix = "${EPREFIX}/usr"
 		libdir = "$(get_libdir)"
