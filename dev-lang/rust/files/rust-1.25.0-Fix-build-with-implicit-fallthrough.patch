@@ -1,0 +1,12 @@
+diff --git a/src/binaryen/CMakeLists.txt b/src/binaryen/CMakeLists.txt
+index fbd0bed..6319381 100644
+--- a/src/binaryen/CMakeLists.txt
++++ b/src/binaryen/CMakeLists.txt
+@@ -148,6 +148,7 @@ ELSE()
+   endif ()
+   ADD_COMPILE_FLAG("-Wall")
+   ADD_COMPILE_FLAG("-Werror")
++  ADD_COMPILE_FLAG("-Wno-error=implicit-fallthrough=")
+   ADD_COMPILE_FLAG("-Wextra")
+   ADD_COMPILE_FLAG("-Wno-unused-parameter")
+   ADD_COMPILE_FLAG("-fno-omit-frame-pointer")
