@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 # Build written by Andrew John Hughes (gnu_andrew@member.fsf.org)
@@ -6,23 +6,23 @@
 EAPI="6"
 SLOT="8"
 
-inherit check-reqs gnome2-utils java-pkg-2 java-vm-2 multiprocessing pax-utils prefix versionator
+inherit check-reqs eutils gnome2-utils java-pkg-2 java-vm-2 multiprocessing pax-utils prefix versionator
 
 ICEDTEA_VER=$(get_version_component_range 1-3)
 ICEDTEA_BRANCH=$(get_version_component_range 1-2)
 ICEDTEA_PKG=icedtea-${ICEDTEA_VER}
 ICEDTEA_PRE=$(get_version_component_range _)
 
-CORBA_TARBALL="13a5a8a3c66f.tar.xz"
-JAXP_TARBALL="947a7b1ce48b.tar.xz"
-JAXWS_TARBALL="eafb356c44d0.tar.xz"
-JDK_TARBALL="a05e38417041.tar.xz"
-LANGTOOLS_TARBALL="61a1c711f7ab.tar.xz"
-OPENJDK_TARBALL="eb577ed6ec93.tar.xz"
-NASHORN_TARBALL="a2d2fc80c97a.tar.xz"
-HOTSPOT_TARBALL="9bad7d4825fb.tar.xz"
-SHENANDOAH_TARBALL="7eeed7dc4676.tar.xz"
-AARCH32_TARBALL="7b008fa0fb6d.tar.xz"
+AARCH32_TARBALL="bd08b7f27e11.tar.xz"
+CORBA_TARBALL="75fd375dd38a.tar.xz"
+HOTSPOT_TARBALL="6915dc9ae18c.tar.xz"
+JAXP_TARBALL="2b279bb3475b.tar.xz"
+JAXWS_TARBALL="c54a27559acb.tar.xz"
+JDK_TARBALL="9c9ff65b03b6.tar.xz"
+LANGTOOLS_TARBALL="21524ad5b914.tar.xz"
+NASHORN_TARBALL="bb3e3345d3ec.tar.xz"
+OPENJDK_TARBALL="499b993b345a.tar.xz"
+SHENANDOAH_TARBALL="c44a9eef4985.tar.xz"
 
 CACAO_TARBALL="cacao-900db2220376.tar.xz"
 JAMVM_TARBALL="jamvm-ebd11bde0a97b57f0d18938c6b65468d3c932719.tar.gz"
@@ -191,18 +191,23 @@ src_unpack() {
 	unpack ${SRC_PKG}
 }
 
+src_prepare() {
+	epatch "${FILESDIR}/${PN}8-Makefile_patch_fuzz.patch"
+	eapply_user
+}
+
 src_configure() {
 	# Link musl patches into icedtea build tree
-	ln -s "${FILESDIR}/${PN}-hotspot-musl.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-hotspot-noagent-musl.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-hotspot-uclibc-fixes.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-hotspot-dlvsym-fix.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-jdk-execinfo.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-jdk-fix-libjvm-load.patch" patches || die
-	ln -s "${FILESDIR}/${PN}-jdk-fix-ipv6-init.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-jdk-musl.patch" patches || die
-	ln -s "${FILESDIR}/${PN}8-autoconf-config.patch" patches || die
-	ln -s "${FILESDIR}/${PN}-jdk-fix-gcc-check.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-musl.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-noagent-musl.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-uclibc-fixes.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-dlvsym-fix.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-execinfo.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-libjvm-load.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-ipv6-init.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-musl.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-autoconf-config.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-gcc-check.patch" patches || die
 
 	# For bootstrap builds as the sandbox control file might not yet exist.
 	addpredict /proc/self/coredump_filter
@@ -216,16 +221,16 @@ src_configure() {
 	# Export musl patches for configure
 	DISTRIBUTION_PATCHES=""
 
-	DISTRIBUTION_PATCHES+="patches/${PN}-hotspot-musl.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-noagent-musl.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-uclibc-fixes.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-dlvsym-fix.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-execinfo.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-fix-libjvm-load.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}-jdk-fix-ipv6-init.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-musl.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}8-autoconf-config.patch "
-	DISTRIBUTION_PATCHES+="patches/${PN}-jdk-fix-gcc-check.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-musl.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-noagent-musl.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-uclibc-fixes.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-dlvsym-fix.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-execinfo.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-libjvm-load.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-ipv6-init.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-musl.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-autoconf-config.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-gcc-check.patch "
 
 	export DISTRIBUTION_PATCHES
 
@@ -419,5 +424,6 @@ pkg_preinst() {
 	gnome2_icon_savelist
 }
 
+pkg_preinst() { gnome2_icon_savelist; }
 pkg_postinst() { gnome2_icon_cache_update; }
 pkg_postrm() { gnome2_icon_cache_update; }

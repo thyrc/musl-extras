@@ -1,0 +1,80 @@
+diff --git a/Makefile.am b/Makefile.am
+index f6a22f2..4efd34f 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -1611,7 +1611,7 @@ stamps/patch-fsg.stamp: stamps/extract.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
+@@ -1662,7 +1662,7 @@ stamps/patch.stamp: stamps/patch-fsg.stamp
+ 	do \
+ 	  if test x$${all_patches_ok} == "xyes" \
+ 	     && echo Checking $$p \
+-	     && $(PATCH) -l -p1 --dry-run -s -t -f -F 0 < $(abs_top_srcdir)/$$p ; \
++	     && $(PATCH) -l -p1 --dry-run -s -t -f < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p1 < $(abs_top_srcdir)/$$p ; \
+@@ -1676,7 +1676,7 @@ stamps/patch.stamp: stamps/patch-fsg.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
+@@ -1809,7 +1809,7 @@ stamps/patch-boot.stamp: stamps/clone-boot.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
+diff --git a/Makefile.in b/Makefile.in
+index 6d08f02..7dcdc45 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -2074,7 +2074,7 @@ stamps/patch-fsg.stamp: stamps/extract.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
+@@ -2125,7 +2125,7 @@ stamps/patch.stamp: stamps/patch-fsg.stamp
+ 	do \
+ 	  if test x$${all_patches_ok} == "xyes" \
+ 	     && echo Checking $$p \
+-	     && $(PATCH) -l -p1 --dry-run -s -t -f -F 0 < $(abs_top_srcdir)/$$p ; \
++	     && $(PATCH) -l -p1 --dry-run -s -t -f < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p1 < $(abs_top_srcdir)/$$p ; \
+@@ -2139,7 +2139,7 @@ stamps/patch.stamp: stamps/patch-fsg.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
+@@ -2268,7 +2268,7 @@ stamps/patch-boot.stamp: stamps/clone-boot.stamp
+ 	  if test x$${all_patches_ok} = "xyes" \
+ 	    && echo Checking $$p \
+ 	    && $(PATCH) -l -p0 --dry-run -s -t -f \
+-	      -F 0 < $(abs_top_srcdir)/$$p ; \
++	      < $(abs_top_srcdir)/$$p ; \
+ 	  then \
+ 	    echo Applying $$p ; \
+ 	    $(PATCH) -l -p0 < $(abs_top_srcdir)/$$p ; \
