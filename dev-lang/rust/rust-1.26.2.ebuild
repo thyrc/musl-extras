@@ -122,7 +122,6 @@ PATCHES=(
 	"${FILESDIR}/${PN}-1.26.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
 	"${FILESDIR}/${PN}-1.25.0-liblibc.patch"
 	"${FILESDIR}/${PN}-1.25.0-Avoid_LLVM_name_conflicts.patch"
-	# "${FILESDIR}/${PN}-1.25.0-Fix-build-with-implicit-fallthrough.patch"
 )
 
 S="${WORKDIR}/${MY_P}-src"
