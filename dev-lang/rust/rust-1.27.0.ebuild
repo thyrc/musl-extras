@@ -4,7 +4,7 @@
 EAPI=6
 
 LLVM_MAX_SLOT=6
-PYTHON_COMPAT=( python2_7 )
+PYTHON_COMPAT=( python2_7 python3_{5,6} pypy )
 
 inherit check-reqs multiprocessing python-any-r1 versionator toolchain-funcs llvm
 
@@ -20,7 +20,7 @@ else
 	SLOT="stable/${ABI_VER}"
 	MY_P="rustc-${PV}"
 	SRC="${MY_P}-src.tar.xz"
-	KEYWORDS="~amd64 ~arm ~x86"
+	KEYWORDS="~amd64 ~arm64 ~x86"
 fi
 
 case "${CHOST}" in
@@ -79,7 +79,7 @@ IUSE_RUST_EXTENDED_TOOLS=(
 	${RUST_TOOLS[@]/#/rust_tools_}
 )
 
-IUSE="debug doc extended jemalloc libressl system-llvm system-rust ${IUSE_RUST_EXTENDED_TOOLS[@]/#/+}"
+IUSE="debug doc extended +jemalloc libressl system-llvm system-rust ${IUSE_RUST_EXTENDED_TOOLS[@]/#/+}"
 
 RDEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		jemalloc? ( dev-libs/jemalloc )
@@ -113,16 +113,15 @@ PDEPEND="!extended? ( >=dev-util/cargo-${CARGO_DEPEND_VERSION} )"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-1.25.0-Require-static-native-libraries-when-linking-static-.patch"
-	"${FILESDIR}/${PN}-1.25.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
+	"${FILESDIR}/${PN}-1.27.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
 	"${FILESDIR}/${PN}-1.25.0-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
-	"${FILESDIR}/${PN}-1.25.0-Remove-nostdlib-and-musl_root.patch"
+	"${FILESDIR}/${PN}-1.27.0-Remove-nostdlib-and-musl_root.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-LLVM-build.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-rustdoc-for-cross-targets.patch"
 	"${FILESDIR}/${PN}-1.25.0-Add-openssl-configuration-for-musl-targets.patch"
-	"${FILESDIR}/${PN}-1.25.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
+	"${FILESDIR}/${PN}-1.26.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
 	"${FILESDIR}/${PN}-1.25.0-liblibc.patch"
 	"${FILESDIR}/${PN}-1.25.0-Avoid_LLVM_name_conflicts.patch"
-	"${FILESDIR}/${PN}-1.25.0-Fix-build-with-implicit-fallthrough.patch"
 )
 
 S="${WORKDIR}/${MY_P}-src"
@@ -237,11 +236,11 @@ src_configure() {
 }
 
 src_compile() {
-	./x.py build -j$(makeopts_jobs) || die
+	./x.py build --config="${S}"/config.toml -j$(makeopts_jobs) || die
 }
 
 src_install() {
-	env DESTDIR="${D}" ./x.py install -j$(makeopts_jobs) || die
+	env DESTDIR="${D}" ./x.py install || die
 
 	rm "${D}/usr/$(get_libdir)/rustlib/components" || die
 	rm "${D}/usr/$(get_libdir)/rustlib/install.log" || die
