@@ -44,7 +44,7 @@ STAGE0_VERSION="1.$(($(get_version_component_range 2) - 0)).0"
 CARGO_DEPEND_VERSION="0.$(($(get_version_component_range 2) + 1)).0"
 
 DESCRIPTION="Systems programming language from Mozilla"
-HOMEPAGE="http://www.rust-lang.org/"
+HOMEPAGE="https://www.rust-lang.org/"
 
 SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 # 	!system-rust? (
@@ -72,7 +72,7 @@ SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
 RUST_TOOLS=(
-	cargo rls rustfmt rustdoc analysis src clippy-driver miri
+	cargo rls rustfmt analysis src rustdoc clippy-driver miri
 )
 
 IUSE_RUST_EXTENDED_TOOLS=(
@@ -114,11 +114,11 @@ PDEPEND="!extended? ( >=dev-util/cargo-${CARGO_DEPEND_VERSION} )"
 PATCHES=(
 	"${FILESDIR}/${PN}-1.25.0-Require-static-native-libraries-when-linking-static-.patch"
 	"${FILESDIR}/${PN}-1.27.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
-	"${FILESDIR}/${PN}-1.25.0-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
+	"${FILESDIR}/${PN}-1.27.1-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
 	"${FILESDIR}/${PN}-1.27.0-Remove-nostdlib-and-musl_root.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-LLVM-build.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-rustdoc-for-cross-targets.patch"
-	"${FILESDIR}/${PN}-1.25.0-Add-openssl-configuration-for-musl-targets.patch"
+	"${FILESDIR}/${PN}-1.27.1-Add-openssl-configuration-for-musl-targets.patch"
 	"${FILESDIR}/${PN}-1.26.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
 	"${FILESDIR}/${PN}-1.25.0-liblibc.patch"
 	"${FILESDIR}/${PN}-1.25.0-Avoid_LLVM_name_conflicts.patch"
@@ -148,7 +148,7 @@ pkg_setup() {
 		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
 
 		export LLVM_LINK_SHARED=1
-		export RUSTFLAGS="$RUSTFLAGS -Lnative=$("$llvm_config" --libdir)"
+		export RUSTFLAGS="$RUSTFLAGS -L native=$("$llvm_config" --libdir)"
 	fi
 
 	python-any-r1_pkg_setup
@@ -264,6 +264,9 @@ src_install() {
 		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-analysis-${RUSTHOST}" || die
 		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-src" || die
 		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rustfmt-preview" || die
+
+		rm "${D}/usr/share/doc/${P}/LICENSE-APACHE.old" || die
+		rm "${D}/usr/share/doc/${P}/LICENSE-MIT.old" || die
 	fi
 
 	rm "${D}/usr/share/doc/${P}/LICENSE-APACHE" || die

@@ -9,6 +9,14 @@
     <flag name="clang">Use <pkg>sys-devel/clang</pkg> for building</flag>
     <flag name="extended">Build the extended rust tool set (cargo, rustfmt etc.)</flag>
     <flag name="jemalloc">Use <pkg>dev-libs/jemalloc</pkg> for allocations</flag>
+    <flag name="rust_tools_analysis">Set of extended tools to build</flag>
+    <flag name="rust_tools_cargo">Set of extended tools to build</flag>
+    <flag name="rust_tools_clippy-driver">Set of extended tools to build</flag>
+    <flag name="rust_tools_miri">Set of extended tools to build</flag>
+    <flag name="rust_tools_rls">Set of extended tools to build</flag>
+    <flag name="rust_tools_rustdoc">Set of extended tools to build</flag>
+    <flag name="rust_tools_rustfmt">Set of extended tools to build</flag>
+    <flag name="rust_tools_src">Set of extended tools to build</flag>
     <flag name="system-llvm">Use system <pkg>sys-devel/llvm</pkg> in place of the bundled one</flag>
     <flag name="system-rust">Use system <pkg>dev-lang/rust</pkg> instead of downloading the stage0 compiler</flag>
   </use>
