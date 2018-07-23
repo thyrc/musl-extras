@@ -23,24 +23,50 @@ else
 	KEYWORDS="~amd64 ~arm64 ~x86"
 fi
 
-case "${CHOST}" in
-	armv7a-hardfloat-*)
-		RUSTARCH=armv7 ;;
-	arm*)
-		RUSTARCH=arm ;;
-	*)
-		RUSTARCH=${CHOST%%-*} ;;
-esac
-case "${CHOST}" in
-	armv7a-hardfloat-*)
-		RUSTLIBC=${ELIBC/glibc/gnu}eabihf ;;
-	arm*)
-		RUSTLIBC=${ELIBC/glibc/gnu}eabi ;;
-	*)
-		RUSTLIBC=${ELIBC/glibc/gnu} ;;
-esac
-RUSTHOST=${RUSTARCH}-unknown-${KERNEL}-${RUSTLIBC}
-STAGE0_VERSION="1.$(($(get_version_component_range 2) - 0)).0"
+toml_usex() {
+	usex "$1" true false
+}
+
+rust_host() {
+	case "${1}" in
+		arm)
+			if [[ ${1} == ${DEFAULT_ABI} ]]; then
+				if [[ ${CHOST} == armv7* ]]; then
+					RUSTARCH=armv7
+				else
+					RUSTARCH=arm
+				fi
+			else
+				RUSTARCH=arm
+			fi ;;
+		amd64)
+			RUSTARCH=x86_64 ;;
+		arm64)
+			RUSTARCH=aarch64 ;;
+		x86)
+			RUSTARCH=i686 ;;
+	esac
+	case "${1}" in
+		arm)
+			if [[ ${1} == ${DEFAULT_ABI} ]]; then
+				if [[ ${CHOST} == armv7a-hardfloat* ]]; then
+					RUSTLIBC=${ELIBC/glibc/gnu}eabihf
+				else
+					RUSTLIBC=${CHOST##*-}
+				fi
+			else
+				RUSTLIBC=${ELIBC/glibc/gnu}
+			fi ;;
+		*)
+			RUSTLIBC=${ELIBC/glibc/gnu} ;;
+	esac
+	RUSTHOST=${RUSTARCH}-unknown-${KERNEL}-${RUSTLIBC}
+	echo "${RUSTHOST}"
+}
+
+RUSTHOST=$(rust_host ${ARCH})
+
+STAGE0_VERSION="1.$(($(get_version_component_range 2) - 0)).2"
 CARGO_DEPEND_VERSION="0.$(($(get_version_component_range 2) + 1)).0"
 
 DESCRIPTION="Systems programming language from Mozilla"
@@ -71,9 +97,7 @@ SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz"
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-RUST_TOOLS=(
-	cargo rls rustfmt analysis src rustdoc clippy-driver miri
-)
+RUST_TOOLS=( cargo rls rustfmt analysis src )
 
 IUSE_RUST_EXTENDED_TOOLS=(
 	${RUST_TOOLS[@]/#/rust_tools_}
@@ -82,15 +106,12 @@ IUSE_RUST_EXTENDED_TOOLS=(
 IUSE="debug doc extended +jemalloc libressl system-llvm system-rust ${IUSE_RUST_EXTENDED_TOOLS[@]/#/+}"
 
 RDEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
-		jemalloc? ( dev-libs/jemalloc )
-		system-llvm? ( sys-devel/llvm:6 )
+		jemalloc? ( >=dev-libs/jemalloc-4.5.0 )
+		system-llvm? ( sys-devel/llvm )
 		extended? (
-			libressl? (
-				>=dev-libs/libressl-2.5.0:=
-				<dev-libs/libressl-2.7.0:=
-			)
+			libressl? ( dev-libs/libressl:0= )
 			!libressl? ( dev-libs/openssl:0= )
-			net-libs/http-parser:=
+			net-libs/http-parser:0/2.8.0
 			net-libs/libssh2:=
 			net-misc/curl:=[ssl]
 			sys-libs/zlib:=
@@ -105,7 +126,7 @@ DEPEND="${RDEPEND}
 		>=sys-devel/clang-3.5
 	)
 	!system-llvm? (
-		>=dev-util/cmake-3.4.3
+		dev-util/cmake
 		dev-util/ninja
 	)
 "
@@ -125,10 +146,6 @@ PATCHES=(
 )
 
 S="${WORKDIR}/${MY_P}-src"
-
-toml_usex() {
-	usex "$1" true false
-}
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
@@ -180,6 +197,7 @@ src_configure() {
 
 	cat <<- EOF > "${S}"/config.toml
 		[llvm]
+		targets = "X86"
 		ninja = true
 		optimize = $(toml_usex !debug)
 		release-debuginfo = $(toml_usex debug)
@@ -236,7 +254,8 @@ src_configure() {
 }
 
 src_compile() {
-	./x.py build --config="${S}"/config.toml -j$(makeopts_jobs) || die
+	./x.py build --config="${S}"/config.toml -j$(makeopts_jobs) \
+		--exclude src/tools/miri --exclude src/tools/clippy || die
 }
 
 src_install() {
@@ -253,6 +272,17 @@ src_install() {
 	mv "${D}/usr/bin/rustdoc" "${D}/usr/bin/rustdoc-${PV}" || die
 	mv "${D}/usr/bin/rust-gdb" "${D}/usr/bin/rust-gdb-${PV}" || die
 	mv "${D}/usr/bin/rust-lldb" "${D}/usr/bin/rust-lldb-${PV}" || die
+
+	if use rust_tools_cargo; then
+		mv "${D}/usr/bin/cargo" "${D}/usr/bin/cargo-${PV}" || die
+	fi
+	if use rust_tools_rls; then
+		mv "${D}/usr/bin/rls" "${D}/usr/bin/rls-${PV}" || die
+	fi
+	if use rust_tools_rustfmt; then
+		mv "${D}/usr/bin/rustfmt" "${D}/usr/bin/rustfmt-${PV}" || die
+		mv "${D}/usr/bin/cargo-fmt" "${D}/usr/bin/cargo-fmt-${PV}" || die
+	fi
 
 	if use doc; then
 		rm "${D}/usr/$(get_libdir)/rustlib/manifest-rust-docs" || die
@@ -273,6 +303,7 @@ src_install() {
 	rm "${D}/usr/share/doc/${P}/LICENSE-MIT" || die
 
 	docompress "/usr/share/${P}/man"
+	dodoc COPYRIGHT
 
 	cat <<-EOF > "${T}"/50${P}
 		MANPATH="/usr/share/${P}/man"
@@ -284,6 +315,16 @@ src_install() {
 		/usr/bin/rust-gdb
 		/usr/bin/rust-lldb
 	EOF
+	if use rust_tools_cargo; then
+		echo /usr/bin/cargo >> "${T}/provider-${P}"
+	fi
+	if use rust_tools_rls; then
+		echo /usr/bin/rls >> "${T}/provider-${P}"
+	fi
+	if use rust_tools_rustfmt; then
+		echo /usr/bin/rustfmt >> "${T}/provider-${P}"
+		echo /usr/bin/cargo-fmt >> "${T}/provider-${P}"
+	fi
 	dodir /etc/env.d/rust
 	insinto /etc/env.d/rust
 	doins "${T}/provider-${P}"
