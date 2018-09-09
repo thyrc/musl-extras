@@ -1,0 +1,24 @@
+diff --git a/rijndael.h b/rijndael.h
+index de3992c..b96cc52 100644
+--- a/rijndael.h
++++ b/rijndael.h
+@@ -30,6 +30,19 @@
+ #include <stdlib.h>
+ #include <sys/types.h>
+ 
++#ifndef __uint8_t
++#define __uint8_t uint8_t
++#endif
++#ifndef __uint16_t
++#define __uint16_t uint16_t
++#endif
++#ifndef __uint32_t
++#define __uint32_t uint32_t
++#endif
++#ifndef __uint64_t
++#define __uint64_t uint64_t
++#endif
++
+ #ifdef _CRYPT_RIJNDAEL_H_TYPES
+ 	#undef _CRYPT_RIJNDAEL_H_TYPES
+ #endif
