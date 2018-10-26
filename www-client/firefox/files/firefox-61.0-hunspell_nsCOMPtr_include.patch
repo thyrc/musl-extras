@@ -1,0 +1,10 @@
+--- a/extensions/spellcheck/hunspell/glue/mozHunspellFileMgr.h	2018-07-05 21:25:01.554246233 +0200
++++ b/extensions/spellcheck/hunspell/glue/mozHunspellFileMgr.h	2018-07-05 21:25:32.514411426 +0200
+@@ -13,6 +13,7 @@
+ #include "mozilla/ResultExtensions.h"
+ #include "nsIInputStream.h"
+ #include "nsReadLine.h"
++#include "nsCOMPtr.h"
+ 
+ // Note: This class name and lack of namespacing terrible, but are necessary
+ // for Hunspell compatibility.
