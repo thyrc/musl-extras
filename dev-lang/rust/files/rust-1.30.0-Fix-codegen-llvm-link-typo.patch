@@ -1,0 +1,13 @@
+diff --git a/src/librustc_codegen_llvm/back/link.rs b/src/librustc_codegen_llvm/back/link.rs
+index f79cf3da1..ab7fdbecc 100644
+--- a/src/librustc_codegen_llvm/back/link.rs
++++ b/src/librustc_codegen_llvm/back/link.rs
+@@ -1639,7 +1639,7 @@ fn add_upstream_native_libraries(cmd: &mut dyn Linker,
+             match lib.kind {
+                 NativeLibraryKind::NativeUnknown => {
+                     // When creating executables, match library linkage to that of the executable
+-                    if crate_type == config::CrateTypeExecutable && sess.crt_static() {
++                    if crate_type == config::CrateType::Executable && sess.crt_static() {
+                         cmd.link_staticlib(&name.as_str())
+                     } else {
+                         cmd.link_dylib(&name.as_str())

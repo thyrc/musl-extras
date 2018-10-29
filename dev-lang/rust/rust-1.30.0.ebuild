@@ -133,16 +133,16 @@ DEPEND="${RDEPEND}
 PDEPEND="!extended? ( >=dev-util/cargo-${CARGO_DEPEND_VERSION} )"
 
 PATCHES=(
-	"${FILESDIR}/${PN}-1.25.0-Require-static-native-libraries-when-linking-static-.patch"
-	"${FILESDIR}/${PN}-1.27.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
+	"${FILESDIR}/${PN}-1.29.1-Require-static-native-libraries-when-linking-static.patch"
+	"${FILESDIR}/${PN}-1.30.0-Switch-musl-targets-to-link-dynamically-by-default.patch"
 	"${FILESDIR}/${PN}-1.27.1-Prefer-libgcc_eh-over-libunwind-for-musl.patch"
-	"${FILESDIR}/${PN}-1.27.0-Remove-nostdlib-and-musl_root.patch"
+	"${FILESDIR}/${PN}-1.30.0-Remove-nostdlib-and-musl_root.patch"
 	"${FILESDIR}/${PN}-1.25.0-Fix-LLVM-build.patch"
-	"${FILESDIR}/${PN}-1.25.0-Fix-rustdoc-for-cross-targets.patch"
-	"${FILESDIR}/${PN}-1.27.1-Add-openssl-configuration-for-musl-targets.patch"
-	"${FILESDIR}/${PN}-1.26.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
+	"${FILESDIR}/${PN}-1.28.0-Add-openssl-configuration-for-musl-targets.patch"
+	"${FILESDIR}/${PN}-1.28.0-Don-t-pass-CFLAGS-to-the-C-compiler.patch"
 	"${FILESDIR}/${PN}-1.25.0-liblibc.patch"
 	"${FILESDIR}/${PN}-1.25.0-Avoid_LLVM_name_conflicts.patch"
+	"${FILESDIR}/${PN}-1.30.0-Fix-codegen-llvm-link-typo.patch"
 )
 
 S="${WORKDIR}/${MY_P}-src"
