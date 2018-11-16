@@ -116,12 +116,12 @@ DEPEND="${CDEPEND}
 	)
 	pulseaudio? ( media-sound/pulseaudio )
 	elibc_glibc? (
-		virtual/cargo
-		virtual/rust
+		>=virtual/cargo-1.28.0
+		>=virtual/rust-1.28.0
 	)
-	elibc_musl? ( || ( >=dev-lang/rust-1.24.0[extended] (
-		virtual/cargo
-		virtual/rust
+	elibc_musl? ( || ( >=dev-lang/rust-1.28.0[extended] (
+		>=virtual/cargo-1.28.0
+		>=virtual/rust-1.28.0
 		) )
 	)
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
@@ -187,6 +187,9 @@ src_unpack() {
 src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
+	# Allow user to apply any additional patches without modifing ebuild
+	eapply_user
+
 	# Enable gnomebreakpad
 	if use debug ; then
 		sed -i -e "s:GNOME_DISABLE_CRASH_DIALOG=1:GNOME_DISABLE_CRASH_DIALOG=0:g" \
@@ -228,8 +231,10 @@ src_prepare() {
 	sed '/^MOZ_DEV_EDITION=1/d' \
 		-i "${S}"/browser/branding/aurora/configure.sh || die
 
-	# Allow user to apply any additional patches without modifing ebuild
-	eapply_user
+	# rustfmt, a tool to format Rust code, is optional and not required to build Firefox.
+	# However, when available, an unsupported version can cause problems, bug #669548
+	sed -i -e "s@check_prog('RUSTFMT', add_rustup_path('rustfmt')@check_prog('RUSTFMT', add_rustup_path('rustfmt_do_not_use')@" \
+		"${S}"/build/moz.configure/rust.configure || die
 
 	# Autotools configure is now called old-configure.in
 	# This works because there is still a configure.in that happens to be for the
@@ -567,6 +572,10 @@ PROFILE_EOF
 		icon="${PN}"
 		name="Mozilla Firefox"
 	fi
+
+	# Disable built-in auto-update because we update firefox through package manager
+	insinto ${MOZILLA_FIVE_HOME}/distribution/
+	newins "${FILESDIR}"/disable-auto-update.policy.json policies.json
 
 	# Install icons and .desktop for menu entry
 	for size in ${sizes}; do
