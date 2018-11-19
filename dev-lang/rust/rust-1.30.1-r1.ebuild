@@ -175,6 +175,9 @@ src_configure() {
 		channel = "stable"
 		rpath = false
 		lld = $(toml_usex wasm)
+		optimize-tests = $(toml_usex !debug)
+		codegen-tests = true
+		dist-src = $(toml_usex debug)
 	EOF
 
 	if use elibc_musl; then

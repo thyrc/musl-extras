@@ -1,0 +1,12 @@
+diff --git a/src/storage/storage_backend_fs.c b/src/storage/storage_backend_fs.c
+index 8983738..2ee3bd5 100644
+--- a/src/storage/storage_backend_fs.c
++++ b/src/storage/storage_backend_fs.c
+@@ -29,6 +29,7 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <string.h>
++#include <paths.h>
+ 
+ #include "virerror.h"
+ #include "storage_backend_fs.h"
