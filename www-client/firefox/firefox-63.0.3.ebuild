@@ -119,7 +119,7 @@ DEPEND="${CDEPEND}
 		>=virtual/cargo-1.28.0
 		>=virtual/rust-1.28.0
 	)
-	elibc_musl? ( || ( >=dev-lang/rust-1.28.0[extended] (
+	elibc_musl? ( || ( >=dev-lang/rust-1.30.1-r1 (
 		>=virtual/cargo-1.28.0
 		>=virtual/rust-1.28.0
 		) )

@@ -13,7 +13,7 @@ if [[ -z ${_CARGO_ECLASS} ]]; then
 _CARGO_ECLASS=1
 
 CARGO_DEPEND=""
-[[ ${CATEGORY}/${PN} != dev-util/cargo ]] && CARGO_DEPEND="|| ( >=dev-lang/rust-1.24.0[extended] ( virtual/cargo ) )"
+[[ ${CATEGORY}/${PN} != dev-util/cargo ]] && CARGO_DEPEND="|| ( >=dev-lang/rust-1.30.1-r1 ( virtual/cargo ) )"
 
 case ${EAPI} in
 	6) DEPEND="${CARGO_DEPEND}";;
