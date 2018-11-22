@@ -1,0 +1,10 @@
+--- Source/Core/Core/MemoryWatcher.cpp.orig	2018-11-22 16:00:24.436665275 +0100
++++ Source/Core/Core/MemoryWatcher.cpp	2018-11-22 15:58:33.839851798 +0100
+@@ -6,6 +6,7 @@
+ #include <iostream>
+ #include <memory>
+ #include <sstream>
++#include <string.h>
+ #include <unistd.h>
+ 
+ #include "Common/FileUtil.h"
