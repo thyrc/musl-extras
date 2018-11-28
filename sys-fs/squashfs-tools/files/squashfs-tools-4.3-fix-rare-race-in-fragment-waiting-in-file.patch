@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<title>0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch\squashfs-tools\main - aports - Main aports tree
+</title>
+<meta name='generator' content='cgit v1.1'/>
+<meta name='robots' content='index, nofollow'/>
+<link rel='stylesheet' type='text/css' href='/cgit.css'/>
+<link rel='shortcut icon' href='//alpinelinux.org/alpine-logo.ico'/>
+<link rel='alternate' title='Atom feed' href='https://git.alpinelinux.org/cgit/aports/atom/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch?h=master' type='application/atom+xml'/>
+<link rel='vcs-git' href='git://git.alpinelinux.org/aports' title='aports Git repository'/>
+<link rel='vcs-git' href='https://git.alpinelinux.org/cgit/aports' title='aports Git repository'/>
+</head>
+<body>
+<div id='cgit'><table id='header'>
+<tr>
+<td class='logo' rowspan='2'><a href='/cgit/'><img src='//wiki.alpinelinux.org/w/resources/assets/alogo.png' alt='cgit logo'/></a></td>
+<td class='main'><a href='/cgit/'>index</a> : <a title='aports' href='/cgit/aports/'>aports</a></td><td class='form'><form method='get'>
+<select name='h' onchange='this.form.submit();'>
+<option value='1.10-stable'>1.10-stable</option>
+<option value='1.9'>1.9</option>
+<option value='2.0-stable'>2.0-stable</option>
+<option value='2.1-stable'>2.1-stable</option>
+<option value='2.2-stable'>2.2-stable</option>
+<option value='2.3-stable'>2.3-stable</option>
+<option value='2.4-stable'>2.4-stable</option>
+<option value='2.5-stable'>2.5-stable</option>
+<option value='2.6-stable'>2.6-stable</option>
+<option value='2.7-stable'>2.7-stable</option>
+<option value='3.0-stable'>3.0-stable</option>
+<option value='3.1-stable'>3.1-stable</option>
+<option value='3.2-stable'>3.2-stable</option>
+<option value='3.3-stable'>3.3-stable</option>
+<option value='3.4-stable'>3.4-stable</option>
+<option value='3.5-stable'>3.5-stable</option>
+<option value='3.6-stable'>3.6-stable</option>
+<option value='3.7-stable'>3.7-stable</option>
+<option value='3.8-stable'>3.8-stable</option>
+<option value='master' selected='selected'>master</option>
+</select> <input type='submit' value='switch'/></form></td></tr>
+<tr><td class='sub'>Main aports tree
+</td><td class='sub right'>gitolite</td></tr></table>
+<table class='tabs'><tr><td>
+<a href='/cgit/aports/about/'>about</a><a href='/cgit/aports/'>summary</a><a href='/cgit/aports/refs/'>refs</a><a href='/cgit/aports/log/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>log</a><a class='active' href='/cgit/aports/tree/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>tree</a><a href='/cgit/aports/commit/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>commit</a><a href='/cgit/aports/diff/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>diff</a><a href='/cgit/aports/stats/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>stats</a></td><td class='form'><form class='right' method='get' action='/cgit/aports/log/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>
+<select name='qt'>
+<option value='grep'>log msg</option>
+<option value='author'>author</option>
+<option value='committer'>committer</option>
+<option value='range'>range</option>
+</select>
+<input class='txt' type='text' size='10' name='q' value=''/>
+<input type='submit' value='search'/>
+</form>
+</td></tr></table>
+<div class='path'>path: <a href='/cgit/aports/tree/'>root</a>/<a href='/cgit/aports/tree/main'>main</a>/<a href='/cgit/aports/tree/main/squashfs-tools'>squashfs-tools</a>/<a href='/cgit/aports/tree/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch</a></div><div class='content'>blob: 51f5888186a810da970b79f3d5d7ac0a02749d52 (<a href='/cgit/aports/plain/main/squashfs-tools/0001-mksquashfs-fix-rare-race-in-fragment-waiting-in-file.patch'>plain</a>)
+<table summary='blob content' class='blob'>
+<tr><td class='linenumbers'><pre><a id='n1' href='#n1'>1</a>
+<a id='n2' href='#n2'>2</a>
+<a id='n3' href='#n3'>3</a>
+<a id='n4' href='#n4'>4</a>
+<a id='n5' href='#n5'>5</a>
+<a id='n6' href='#n6'>6</a>
+<a id='n7' href='#n7'>7</a>
+<a id='n8' href='#n8'>8</a>
+<a id='n9' href='#n9'>9</a>
+<a id='n10' href='#n10'>10</a>
+<a id='n11' href='#n11'>11</a>
+<a id='n12' href='#n12'>12</a>
+<a id='n13' href='#n13'>13</a>
+<a id='n14' href='#n14'>14</a>
+<a id='n15' href='#n15'>15</a>
+<a id='n16' href='#n16'>16</a>
+<a id='n17' href='#n17'>17</a>
+<a id='n18' href='#n18'>18</a>
+<a id='n19' href='#n19'>19</a>
+<a id='n20' href='#n20'>20</a>
+<a id='n21' href='#n21'>21</a>
+<a id='n22' href='#n22'>22</a>
+<a id='n23' href='#n23'>23</a>
+<a id='n24' href='#n24'>24</a>
+<a id='n25' href='#n25'>25</a>
+<a id='n26' href='#n26'>26</a>
+<a id='n27' href='#n27'>27</a>
+<a id='n28' href='#n28'>28</a>
+<a id='n29' href='#n29'>29</a>
+<a id='n30' href='#n30'>30</a>
+<a id='n31' href='#n31'>31</a>
+<a id='n32' href='#n32'>32</a>
+<a id='n33' href='#n33'>33</a>
+<a id='n34' href='#n34'>34</a>
+<a id='n35' href='#n35'>35</a>
+<a id='n36' href='#n36'>36</a>
+<a id='n37' href='#n37'>37</a>
+<a id='n38' href='#n38'>38</a>
+<a id='n39' href='#n39'>39</a>
+<a id='n40' href='#n40'>40</a>
+<a id='n41' href='#n41'>41</a>
+<a id='n42' href='#n42'>42</a>
+<a id='n43' href='#n43'>43</a>
+<a id='n44' href='#n44'>44</a>
+<a id='n45' href='#n45'>45</a>
+<a id='n46' href='#n46'>46</a>
+<a id='n47' href='#n47'>47</a>
+<a id='n48' href='#n48'>48</a>
+<a id='n49' href='#n49'>49</a>
+<a id='n50' href='#n50'>50</a>
+<a id='n51' href='#n51'>51</a>
+<a id='n52' href='#n52'>52</a>
+<a id='n53' href='#n53'>53</a>
+<a id='n54' href='#n54'>54</a>
+<a id='n55' href='#n55'>55</a>
+<a id='n56' href='#n56'>56</a>
+<a id='n57' href='#n57'>57</a>
+<a id='n58' href='#n58'>58</a>
+<a id='n59' href='#n59'>59</a>
+<a id='n60' href='#n60'>60</a>
+</pre></td>
+<td class='lines'><pre><code>From de03266983ceb62e5365aac84fcd3b2fd4d16e6f Mon Sep 17 00:00:00 2001
+From: Phillip Lougher &lt;phillip&#64;squashfs.org.uk&gt;
+Date: Thu, 18 Sep 2014 01:28:11 +0100
+Subject: [PATCH] mksquashfs: fix rare race in fragment waiting in filesystem
+ finalisation
+
+Fix a rare race condition in fragment waiting when finalising the
+filesystem.  This is a race condition that was initially fixed in 2009,
+but inadvertantly re-introduced in the latest release when the code
+was rewritten.
+
+Background:
+
+When finalising the filesystem, the main control thread needs to ensure
+all the in-flight fragments have been queued to the writer thread before
+asking the writer thread to finish, and then writing the metadata.
+
+It does this by waiting on the fragments_outstanding counter.  Once this
+counter reaches 0, it synchronises with the writer thread, waiting until
+the writer thread reports no outstanding data to be written.
+
+However, the main thread can race with the fragment deflator thread(s)
+because the fragment deflator thread(s) decrement the fragments_outstanding
+counter and release the mutex before queueing the compressed fragment
+to the writer thread, i.e. the offending code is:
+
+                        fragments_outstanding --;
+                        pthread_mutex_unlock(&amp;fragment_mutex);
+                        queue_put(to_writer, write_buffer);
+
+In extremely rare circumstances, the main thread may see the
+fragments_outstanding counter is zero before the fragment
+deflator sends the fragment buffer to the writer thread, and synchronise
+with the writer thread, and finalise before the fragment has been written.
+
+The fix is to ensure the fragment is queued to the writer thread
+before releasing the mutex.
+
+Signed-off-by: Phillip Lougher &lt;phillip&#64;squashfs.org.uk&gt;
+<span style="color:#0057ae">---</span>
+ squashfs-tools/mksquashfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/squashfs-tools/mksquashfs.c b/squashfs-tools/mksquashfs.c
+index 87b7d86..f1fcff1 100644
+<span style="color:#0057ae">--- a/squashfs-tools/mksquashfs.c</span>
+<span style="color:#000000; font-weight:bold">+++ b/squashfs-tools/mksquashfs.c</span>
+&#64;&#64; -2419,8 +2419,8 &#64;&#64; void *frag_deflator(void *arg)
+ 			write_buffer-&gt;block = bytes;
+ 			bytes += compressed_size;
+ 			fragments_outstanding --;
+<span style="color:#0057ae">-			pthread_mutex_unlock(&amp;fragment_mutex);</span>
+ 			queue_put(to_writer, write_buffer);
+<span style="color:#000000; font-weight:bold">+			pthread_mutex_unlock(&amp;fragment_mutex);</span>
+ 			TRACE(&quot;Writing fragment %lld, uncompressed size %d, &quot;
+ 				&quot;compressed size %d\n&quot;, file_buffer-&gt;block,
+ 				file_buffer-&gt;size, compressed_size);
+<span style="color:#0057ae">-- </span>
+2.10.2
+
+</code></pre></td></tr></table>
+</div> <!-- class=content -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-2804446-12");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</div> <!-- id=cgit -->
+</body>
+</html>
