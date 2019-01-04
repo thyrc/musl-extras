@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # Build written by Andrew John Hughes (gnu_andrew@member.fsf.org)
@@ -6,23 +6,23 @@
 EAPI="6"
 SLOT="8"
 
-inherit check-reqs gnome2-utils java-pkg-2 java-vm-2 multiprocessing pax-utils prefix versionator
+inherit check-reqs eutils gnome2-utils java-pkg-2 java-vm-2 multiprocessing pax-utils prefix versionator
 
 ICEDTEA_VER=$(get_version_component_range 1-3)
 ICEDTEA_BRANCH=$(get_version_component_range 1-2)
 ICEDTEA_PKG=icedtea-${ICEDTEA_VER}
 ICEDTEA_PRE=$(get_version_component_range _)
 
-AARCH32_TARBALL="1cd346521065.tar.xz"
-CORBA_TARBALL="872ca6c060bb.tar.xz"
-HOTSPOT_TARBALL="074a569c30e4.tar.xz"
-JAXP_TARBALL="154d73707643.tar.xz"
-JAXWS_TARBALL="3f0a3aea44b4.tar.xz"
-JDK_TARBALL="80cebaab0ba5.tar.xz"
-LANGTOOLS_TARBALL="0a2dce555d35.tar.xz"
-NASHORN_TARBALL="136ab780f038.tar.xz"
-OPENJDK_TARBALL="644bdc77dd18.tar.xz"
-SHENANDOAH_TARBALL="773364cde857.tar.xz"
+CORBA_TARBALL="009a3df268f2.tar.xz"
+JAXP_TARBALL="c51cc92b4cb4.tar.xz"
+JAXWS_TARBALL="4d8e98e1a05f.tar.xz"
+JDK_TARBALL="e5c17cfa6af3.tar.xz"
+LANGTOOLS_TARBALL="c37577664482.tar.xz"
+OPENJDK_TARBALL="27a1e6f459a2.tar.xz"
+NASHORN_TARBALL="875a4cd63571.tar.xz"
+HOTSPOT_TARBALL="60eedbcc4288.tar.xz"
+SHENANDOAH_TARBALL="bc4deb768b1d.tar.xz"
+AARCH32_TARBALL="f38b47a322eb.tar.xz"
 
 CACAO_TARBALL="cacao-c182f119eaad.tar.xz"
 JAMVM_TARBALL="jamvm-ec18fb9e49e62dce16c5094ef1527eed619463aa.tar.gz"
@@ -67,7 +67,7 @@ KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 
 IUSE="+alsa cacao +cups doc examples +gtk headless-awt
 	jamvm +jbootstrap kerberos libressl nsplugin pax_kernel +pch
-	pulseaudio sctp selinux shenandoah smartcard +source +sunec test +webstart zero"
+	pulseaudio sctp selinux shenandoah smartcard +source +sunec +system-lcms test +webstart zero"
 
 REQUIRED_USE="gtk? ( !headless-awt )"
 
@@ -86,26 +86,23 @@ X_COMMON_DEP="
 	>=x11-libs/libXtst-1.0.3
 	x11-libs/libXcomposite"
 X_DEPEND="
+	x11-base/xorg-proto
 	>=x11-libs/libXau-1.0.3
 	>=x11-libs/libXdmcp-1.0.2
-	>=x11-libs/libXinerama-1.0.2
-	x11-proto/inputproto
-	>=x11-proto/xextproto-7.1.1
-	x11-proto/xineramaproto
-	x11-proto/xproto"
+	>=x11-libs/libXinerama-1.0.2"
 
 # The Javascript requirement is obsolete; OpenJDK 8+ has Nashorn
 COMMON_DEP="
 	>=dev-libs/glib-2.26:2=
 	media-libs/fontconfig:1.0=
 	>=media-libs/freetype-2.5.3:2=
-	>=media-libs/lcms-2.5:2=
 	>=sys-libs/zlib-1.2.3
 	virtual/jpeg:0=
 	kerberos? ( virtual/krb5 )
 	sctp? ( net-misc/lksctp-tools )
 	smartcard? ( sys-apps/pcsc-lite )
-	sunec? ( >=dev-libs/nss-3.16.1-r1 )"
+	sunec? ( >=dev-libs/nss-3.16.1-r1 )
+	system-lcms? ( >=media-libs/lcms-2.9:2= )"
 
 # Gtk+ will move to COMMON_DEP in time; PR1982
 # gsettings-desktop-schemas will be needed for native proxy support; PR1976
@@ -135,9 +132,7 @@ RDEPEND="${COMMON_DEP}
 DEPEND="${COMMON_DEP} ${ALSA_COMMON_DEP} ${CUPS_COMMON_DEP} ${X_COMMON_DEP} ${X_DEPEND}
 	|| (
 		dev-java/icedtea-bin:8
-		dev-java/icedtea-bin:7
 		dev-java/icedtea:8
-		dev-java/icedtea:7
 	)
 	app-arch/cpio
 	app-arch/unzip
@@ -191,9 +186,15 @@ src_unpack() {
 	unpack ${SRC_PKG}
 }
 
+src_prepare() {
+	epatch "${FILESDIR}/${PN}8-Makefile_patch_fuzz.patch"
+	eapply_user
+}
+
 src_configure() {
 	# Link musl patches into icedtea build tree
 	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-musl.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-hotspot-musl-ppc.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-noagent-musl.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-uclibc-fixes.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-hotspot-dlvsym-fix.patch" patches || die
@@ -201,6 +202,7 @@ src_configure() {
 	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-libjvm-load.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-ipv6-init.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-musl.patch" patches || die
+	ln -s "${FILESDIR}/${PN}8-jdk-getmntent-buffer.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-autoconf-config.patch" patches || die
 	ln -s "${FILESDIR}/${PN}8-3.7.0-jdk-fix-gcc-check.patch" patches || die
 
@@ -217,6 +219,7 @@ src_configure() {
 	DISTRIBUTION_PATCHES=""
 
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-musl.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-hotspot-musl-ppc.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-noagent-musl.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-uclibc-fixes.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-hotspot-dlvsym-fix.patch "
@@ -224,6 +227,7 @@ src_configure() {
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-libjvm-load.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-ipv6-init.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-musl.patch "
+	DISTRIBUTION_PATCHES+="patches/${PN}8-jdk-getmntent-buffer.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-autoconf-config.patch "
 	DISTRIBUTION_PATCHES+="patches/${PN}8-3.7.0-jdk-fix-gcc-check.patch "
 
@@ -256,6 +260,9 @@ src_configure() {
 	# In-tree JIT ports are available for amd64, arm, arm64, ppc64 (be&le), SPARC and x86.
 	if { use amd64 || use arm || use arm64 || use ppc64 || use sparc || use x86; }; then
 		hotspot_port="yes"
+
+		# Work around stack alignment issue, bug #647954.
+		use x86 && append-flags -mincoming-stack-boundary=2
 	fi
 
 	# Always use HotSpot as the primary VM if available. #389521 #368669 #357633 ...
@@ -269,7 +276,7 @@ src_configure() {
 			hs_config="--with-hotspot-build=shenandoah"
 			hs_config+=" --with-hotspot-src-zip="${DISTDIR}/${SHENANDOAH_GENTOO_TARBALL}""
 		else
-			eerror "Shenandoah can only be built on arm64 and x86_64. Please re-build with USE="-shenandoah""
+			eerror "Shenandoah is only supported on arm64 and x86_64. Please re-build with USE="-shenandoah""
 		fi
 	else
 		if use arm ; then
@@ -307,14 +314,6 @@ src_configure() {
 		zero_config="--enable-zero"
 	fi
 
-	# Warn about potential problems with ccache enabled
-	if has ccache ${FEATURES}; then
-		ewarn 'ccache has been known to break IcedTea. Disable it before filing bugs.'
-		config+=" --enable-ccache"
-	else
-		config+=" --disable-ccache"
-	fi
-
 	# PaX breaks pch, bug #601016
 	if use pch && ! host-is-pax; then
 		config+=" --enable-precompiled-headers"
@@ -342,15 +341,16 @@ src_configure() {
 		--docdir="${EPREFIX}/usr/share/doc/${PF}" \
 		--htmldir="${EPREFIX}/usr/share/doc/${PF}/html" \
 		--with-pkgversion="Gentoo ${PF}" \
+		--disable-ccache \
 		--disable-downloading --disable-Werror --disable-tests \
-		--enable-system-lcms --enable-system-jpeg \
-		--enable-system-zlib --disable-systemtap-tests \
-		--enable-improved-font-rendering \
+		--disable-systemtap-tests --enable-improved-font-rendering \
+		--enable-system-jpeg --enable-system-zlib \
 		$(use_enable headless-awt headless) \
 		$(use_enable !headless-awt system-gif) \
 		$(use_enable !headless-awt system-png) \
 		$(use_enable doc docs) \
 		$(use_enable kerberos system-kerberos) \
+		$(use_enable system-lcms) \
 		$(use_with pax_kernel pax "${EPREFIX}/usr/sbin/paxmark.sh") \
 		$(use_enable sctp system-sctp) \
 		$(use_enable smartcard system-pcsc) \
@@ -419,6 +419,12 @@ pkg_preinst() {
 	gnome2_icon_savelist
 }
 
-pkg_preinst() { gnome2_icon_savelist; }
-pkg_postinst() { gnome2_icon_cache_update; }
-pkg_postrm() { gnome2_icon_cache_update; }
+pkg_postinst() {
+	gnome2_icon_cache_update
+	java-vm-2_pkg_postinst
+}
+
+pkg_postrm() {
+	gnome2_icon_cache_update
+	java-vm-2_pkg_postrm
+}
