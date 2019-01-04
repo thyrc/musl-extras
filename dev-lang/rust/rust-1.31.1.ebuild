@@ -3,7 +3,8 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python2_7 python3_{5,6} pypy )
+LLVM_MAX_SLOT=7
+PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
 
 inherit check-reqs eapi7-ver llvm multiprocessing multilib-build python-any-r1 rust-toolchain toolchain-funcs
 
@@ -21,7 +22,7 @@ else
 	KEYWORDS="~amd64 ~arm64 ~x86"
 fi
 
-RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).2"
+RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).1"
 
 DESCRIPTION="Systems programming language from Mozilla"
 HOMEPAGE="https://www.rust-lang.org/"
@@ -36,7 +37,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-IUSE="clippy cpu_flags_x86_sse2 debug doc +jemalloc libressl rls rustfmt system-llvm system-rust wasm ${ALL_LLVM_TARGETS[*]}"
+IUSE="clippy cpu_flags_x86_sse2 debug doc jemalloc libressl rls rustfmt system-llvm system-rust wasm ${ALL_LLVM_TARGETS[*]}"
 
 COMMON_DEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		jemalloc? ( dev-libs/jemalloc )
@@ -46,7 +47,7 @@ COMMON_DEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		net-libs/libssh2
 		net-libs/http-parser:=
 		net-misc/curl[ssl]
-		system-llvm? ( >=sys-devel/llvm-6:= )"
+		system-llvm? ( >=sys-devel/llvm-6:=[${LLVM_TARGET_USEDEPS// /,}] )"
 DEPEND="${COMMON_DEPEND}
 	${PYTHON_DEPS}
 	|| (
@@ -86,7 +87,13 @@ pkg_pretend() {
 
 pkg_setup() {
 	python-any-r1_pkg_setup
-	llvm_pkg_setup
+	if use system-llvm; then
+		llvm_pkg_setup
+		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
+
+		export LLVM_LINK_SHARED=1
+		export RUSTFLAGS="$RUSTFLAGS -Lnative=$("$llvm_config" --libdir)"
+	fi
 }
 
 src_prepare() {
@@ -142,6 +149,7 @@ src_configure() {
 
 	cat <<- EOF > "${S}"/config.toml
 		[llvm]
+		ninja = true
 		optimize = $(toml_usex !debug)
 		release-debuginfo = $(toml_usex debug)
 		assertions = $(toml_usex debug)
@@ -154,6 +162,7 @@ src_configure() {
 		cargo = "${rust_stage0_root}/bin/cargo"
 		rustc = "${rust_stage0_root}/bin/rustc"
 		docs = $(toml_usex doc)
+		compiler-docs = $(toml_usex doc)
 		submodules = false
 		python = "${EPYTHON}"
 		locked-deps = true
@@ -246,16 +255,23 @@ src_install() {
 	mv "${D}/usr/bin/rust-gdb" "${D}/usr/bin/rust-gdb-${PV}" || die
 	mv "${D}/usr/bin/rust-lldb" "${D}/usr/bin/rust-lldb-${PV}" || die
 	mv "${D}/usr/bin/cargo" "${D}/usr/bin/cargo-${PV}" || die
+
+	rm "${D}/usr/lib/rustlib/components" || die
+	rm "${D}/usr/lib/rustlib/install.log" || die
+	rm "${D}/usr/lib/rustlib"/manifest-* || die
+	rm "${D}/usr/lib/rustlib/rust-installer-version" || die
+	rm "${D}/usr/lib/rustlib/uninstall.sh" || die
+
 	if use clippy; then
-		mv "${D}/usr/bin/clippy-driver" "${D}/usr/bin/clippy-driver-${PV}" || die
 		mv "${D}/usr/bin/cargo-clippy" "${D}/usr/bin/cargo-clippy-${PV}" || die
+		mv "${D}/usr/bin/clippy-driver" "${D}/usr/bin/clippy-driver-${PV}" || die
 	fi
 	if use rls; then
 		mv "${D}/usr/bin/rls" "${D}/usr/bin/rls-${PV}" || die
 	fi
 	if use rustfmt; then
-		mv "${D}/usr/bin/rustfmt" "${D}/usr/bin/rustfmt-${PV}" || die
 		mv "${D}/usr/bin/cargo-fmt" "${D}/usr/bin/cargo-fmt-${PV}" || die
+		mv "${D}/usr/bin/rustfmt" "${D}/usr/bin/rustfmt-${PV}" || die
 	fi
 
 	if ! use elibc_musl; then
@@ -275,6 +291,11 @@ src_install() {
 	fi
 
 	dodoc COPYRIGHT
+	rm "${D}/usr/share/doc/${P}"/*.old || die
+	rm "${D}/usr/share/doc/${P}/LICENSE-APACHE" || die
+	rm "${D}/usr/share/doc/${P}/LICENSE-MIT" || die
+
+	docompress "/usr/share/${P}/man"
 
 	# FIXME:
 	# Really not sure if that env is needed
@@ -284,6 +305,7 @@ src_install() {
 	doenvd "${T}"/50${P}
 
 	cat <<-EOF > "${T}/provider-${P}"
+		/usr/bin/cargo
 		/usr/bin/rustdoc
 		/usr/bin/rust-gdb
 		/usr/bin/rust-lldb
