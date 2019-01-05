@@ -255,7 +255,6 @@ PATCHES=(
 	"${FILESDIR}/${PN}-6.1.4.2-fix-includes.patch"
 	"${FILESDIR}/${PN}-6.1.0.3-musl-stacksize.patch"
 	"${FILESDIR}/${PN}-6.1.4.2-disable-liborcus-unittest.patch"
-	"${FILESDIR}/${PN}-6.1.4.2-musl-libintl.patch"
 )
 
 S="${WORKDIR}/${PN}-${MY_PV}"
