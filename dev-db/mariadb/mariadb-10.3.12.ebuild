@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="6"
@@ -64,7 +64,6 @@ PATCHES=(
 	"${MY_PATCH_DIR}"/20024_all_mariadb-10.2.6-mysql_st-regression.patch
 	"${MY_PATCH_DIR}"/20025_all_mariadb-10.2.6-gssapi-detect.patch
 	"${MY_PATCH_DIR}"/20035_all_mariadb-10.3-atomic-detection.patch
-	"${MY_PATCH_DIR}"/20037_all_mariadb-10.3-restore-jemalloc.patch
 )
 
 # Be warned, *DEPEND are version-dependant
@@ -260,7 +259,9 @@ src_prepare() {
 		echo > "${S%/}/storage/${1}/CMakeLists.txt" || die
 	}
 
-	if use tcmalloc; then
+	if use jemalloc; then
+		echo "TARGET_LINK_LIBRARIES(mysqld jemalloc)" >> "${S}/sql/CMakeLists.txt"
+	elif use tcmalloc; then
 		echo "TARGET_LINK_LIBRARIES(mysqld tcmalloc)" >> "${S}/sql/CMakeLists.txt"
 	fi
 
@@ -363,6 +364,7 @@ src_configure(){
 		-DCLIENT_PLUGIN_DIALOG=OFF
 		-DCLIENT_PLUGIN_AUTH_GSSAPI_CLIENT=OFF
 		-DCLIENT_PLUGIN_MYSQL_CLEAR_PASSWORD=STATIC
+		-DCLIENT_PLUGIN_CACHING_SHA2_PASSWORD=OFF
 	)
 	if use test ; then
 		mycmakeargs+=( -DINSTALL_MYSQLTESTDIR=share/mariadb/mysql-test )
@@ -393,7 +395,6 @@ src_configure(){
 		fi
 
 		mycmakeargs+=(
-			-DWITH_JEMALLOC=$(usex jemalloc system)
 			-DWITH_PCRE=system
 			-DPLUGIN_OQGRAPH=$(usex oqgraph DYNAMIC NO)
 			-DPLUGIN_SPHINX=$(usex sphinx YES NO)
