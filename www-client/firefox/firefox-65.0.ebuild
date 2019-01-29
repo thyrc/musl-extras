@@ -125,6 +125,7 @@ DEPEND="${CDEPEND}
 		>=virtual/cargo-1.30.0
 		>=virtual/rust-1.30.0
 		) )
+        sys-libs/fts-standalone
 	)
 	wayland? ( >=x11-libs/gtk+-3.11:3[wayland] )
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
