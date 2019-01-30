@@ -125,7 +125,6 @@ DEPEND="${CDEPEND}
 		>=virtual/cargo-1.30.0
 		>=virtual/rust-1.30.0
 		) )
-        sys-libs/fts-standalone
 	)
 	wayland? ( >=x11-libs/gtk+-3.11:3[wayland] )
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
@@ -195,6 +194,7 @@ src_unpack() {
 
 src_prepare() {
 	eapply "${WORKDIR}/firefox"
+	eapply "${FILESDIR}"/${PN}-65.0-remove_fts_from_system-headers.patch
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
