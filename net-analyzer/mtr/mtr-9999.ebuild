@@ -1,6 +1,5 @@
 # Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
 
 EAPI=6
 inherit autotools eutils fcaps flag-o-matic git-r3
@@ -12,7 +11,7 @@ SRC_URI="mirror://gentoo/gtk-2.0-for-mtr.m4.bz2"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64"
+KEYWORDS=""
 IUSE="gtk ipv6 ncurses"
 
 RDEPEND="
@@ -28,10 +27,10 @@ DEPEND="
 	virtual/pkgconfig
 "
 
-DOCS=( AUTHORS FORMATS NEWS README SECURITY TODO )
-FILECAPS=( cap_net_raw usr/sbin/mtr )
+DOCS=( AUTHORS FORMATS NEWS README.md SECURITY TODO )
+FILECAPS=( cap_net_raw usr/sbin/mtr-packet )
 PATCHES=(
-	"${FILESDIR}"/${PN}-9999-tinfo.patch
+	"${FILESDIR}"/${PN}-0.88-tinfo.patch
 )
 
 src_unpack() {
@@ -60,6 +59,8 @@ src_configure() {
 }
 
 pkg_postinst() {
+	fcaps_pkg_postinst
+
 	if use prefix && [[ ${CHOST} == *-darwin* ]] ; then
 		ewarn "mtr needs root privileges to run.  To grant them:"
 		ewarn " % sudo chown root ${EPREFIX}/usr/sbin/mtr"
