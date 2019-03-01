@@ -1,0 +1,26 @@
+diff --git a/src/librustc_target/spec/linux_musl_base.rs b/src/librustc_target/spec/linux_musl_base.rs
+index e26a5240a..910c8a33c 100644
+--- a/src/librustc_target/spec/linux_musl_base.rs
++++ b/src/librustc_target/spec/linux_musl_base.rs
+@@ -9,8 +9,6 @@ pub fn opts() -> TargetOptions {
+     // argument is *not* necessary for normal builds, but it can't hurt!
+     base.pre_link_args.get_mut(&LinkerFlavor::Gcc).unwrap().push("-Wl,--eh-frame-hdr".to_string());
+ 
+-    // These targets statically link libc by default
+-    base.crt_static_default = true;
+     // These targets allow the user to choose between static and dynamic linking.
+     base.crt_static_respected = true;
+ 
+diff --git a/vendor/rustc-ap-rustc_target/spec/linux_musl_base.rs b/vendor/rustc-ap-rustc_target/spec/linux_musl_base.rs
+index 32fe2f880..018fcd78d 100644
+--- a/vendor/rustc-ap-rustc_target/spec/linux_musl_base.rs
++++ b/vendor/rustc-ap-rustc_target/spec/linux_musl_base.rs
+@@ -19,8 +19,6 @@ pub fn opts() -> TargetOptions {
+     // argument is *not* necessary for normal builds, but it can't hurt!
+     base.pre_link_args.get_mut(&LinkerFlavor::Gcc).unwrap().push("-Wl,--eh-frame-hdr".to_string());
+ 
+-    // These targets statically link libc by default
+-    base.crt_static_default = true;
+     // These targets allow the user to choose between static and dynamic linking.
+     base.crt_static_respected = true;
+ 
