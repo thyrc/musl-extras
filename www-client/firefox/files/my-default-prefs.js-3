@@ -1,0 +1,8 @@
+user_pref("app.shield.optoutstudies.enabled", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("extensions.pocket.enabled", false);
+user_pref("media.autoplay.default", 1);
+user_pref("media.autoplay.enabled.user-gestures-needed", false);
+user_pref("network.IDN_show_punycode", true);
+user_pref("security.dialog_enable_delay", 0);
