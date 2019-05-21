@@ -76,6 +76,9 @@ PATCHES=(
 	"${FILESDIR}"/${P}-xgetbv.patch
 	"${FILESDIR}"/${P}-no-pie.patch
 	"${FILESDIR}"/${P}-fix_missing_include.patch
+	"${FILESDIR}"/${P}-mbedtls_platform_h.patch
+	"${FILESDIR}"/${P}-musl.patch
+	"${FILESDIR}"/${P}-soundtouch212.patch
 )
 
 src_prepare() {
