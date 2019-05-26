@@ -226,7 +226,7 @@ src_configure() {
 	EOF
 
 	if use elibc_musl; then
-		arch_cflags="$(get_abi_CFLAGS ${v##*.})"
+		arch_cflags="$(get_abi_CFLAGS)"
 
 		cat <<- EOF >> "${S}"/config.env
 			CFLAGS_${rust_target}=${arch_cflags}
@@ -288,29 +288,33 @@ src_install() {
 	env DESTDIR="${D}" "${EPYTHON}" ./x.py install --config="${S}"/config.toml \
 		--exclude src/tools/miri || die
 
-	mv "${ED}/usr/bin/rustc" "${D}/usr/bin/rustc-${PV}" || die
-	mv "${ED}/usr/bin/rustdoc" "${D}/usr/bin/rustdoc-${PV}" || die
-	mv "${ED}/usr/bin/rust-gdb" "${D}/usr/bin/rust-gdb-${PV}" || die
-	mv "${ED}/usr/bin/rust-gdbgui" "${D}/usr/bin/rust-gdbgui-${PV}" || die
-	mv "${ED}/usr/bin/rust-lldb" "${D}/usr/bin/rust-lldb-${PV}" || die
-	mv "${ED}/usr/bin/cargo" "${D}/usr/bin/cargo-${PV}" || die
+	mv "${D}/usr/bin/rustc" "${D}/usr/bin/rustc-${PV}" || die
+	mv "${D}/usr/bin/rustdoc" "${D}/usr/bin/rustdoc-${PV}" || die
+	mv "${D}/usr/bin/rust-gdb" "${D}/usr/bin/rust-gdb-${PV}" || die
+	mv "${D}/usr/bin/rust-gdbgui" "${D}/usr/bin/rust-gdbgui-${PV}" || die
+	mv "${D}/usr/bin/rust-lldb" "${D}/usr/bin/rust-lldb-${PV}" || die
+	mv "${D}/usr/bin/cargo" "${D}/usr/bin/cargo-${PV}" || die
 
-	rm "${ED}/usr/lib/rustlib/components" || die
-	rm "${ED}/usr/lib/rustlib/install.log" || die
-	rm "${ED}/usr/lib/rustlib"/manifest-* || die
-	rm "${ED}/usr/lib/rustlib/rust-installer-version" || die
-	rm "${ED}/usr/lib/rustlib/uninstall.sh" || die
+	rm "${D}/usr/lib/rustlib/components" || die
+	rm "${D}/usr/lib/rustlib/install.log" || die
+	rm "${D}/usr/lib/rustlib"/manifest-* || die
+	rm "${D}/usr/lib/rustlib/rust-installer-version" || die
+	rm "${D}/usr/lib/rustlib/uninstall.sh" || die
+
+	if ! use system-llvm; then
+		rm -rf "${D}/var" || die
+	fi
 
 	if use clippy; then
-		mv "${ED}/usr/bin/clippy-driver" "${D}/usr/bin/clippy-driver-${PV}" || die
-		mv "${ED}/usr/bin/cargo-clippy" "${D}/usr/bin/cargo-clippy-${PV}" || die
+		mv "${D}/usr/bin/clippy-driver" "${D}/usr/bin/clippy-driver-${PV}" || die
+		mv "${D}/usr/bin/cargo-clippy" "${D}/usr/bin/cargo-clippy-${PV}" || die
 	fi
 	if use rls; then
-		mv "${ED}/usr/bin/rls" "${D}/usr/bin/rls-${PV}" || die
+		mv "${D}/usr/bin/rls" "${D}/usr/bin/rls-${PV}" || die
 	fi
 	if use rustfmt; then
-		mv "${ED}/usr/bin/rustfmt" "${D}/usr/bin/rustfmt-${PV}" || die
-		mv "${ED}/usr/bin/cargo-fmt" "${D}/usr/bin/cargo-fmt-${PV}" || die
+		mv "${D}/usr/bin/rustfmt" "${D}/usr/bin/rustfmt-${PV}" || die
+		mv "${D}/usr/bin/cargo-fmt" "${D}/usr/bin/cargo-fmt-${PV}" || die
 	fi
 
 	if ! use elibc_musl; then
@@ -324,15 +328,12 @@ src_install() {
 			abi_libdir=$(get_abi_LIBDIR ${v##*.})
 			rust_target=$(rust_abi $(get_abi_CHOST ${v##*.}))
 			mkdir -p "${D}/usr/${abi_libdir}"
-			cp "${ED}/usr/$(get_libdir)/rustlib/${rust_target}/lib"/*.so \
-			   "${ED}/usr/${abi_libdir}" || die
+			cp "${D}/usr/$(get_libdir)/rustlib/${rust_target}/lib"/*.so \
+			   "${D}/usr/${abi_libdir}" || die
 		done
 	fi
 
 	dodoc COPYRIGHT
-	rm "${ED}/usr/share/doc/${P}"/*.old || die
-	rm "${ED}/usr/share/doc/${P}/LICENSE-APACHE" || die
-	rm "${ED}/usr/share/doc/${P}/LICENSE-MIT" || die
 
 	docompress "/usr/share/${P}/man"
 
@@ -344,7 +345,6 @@ src_install() {
 	doenvd "${T}"/50${P}
 
 	cat <<-EOF > "${T}/provider-${P}"
-		/usr/bin/cargo
 		/usr/bin/rustdoc
 		/usr/bin/rust-gdb
 		/usr/bin/rust-gdbgui
