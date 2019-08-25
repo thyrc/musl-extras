@@ -68,7 +68,7 @@ DEPEND="
 "
 
 src_prepare() {
-	epatch "${FILESDIR}/${PN}-0.22.3-Fix-backtrace_symbols_fd-check.patch"
+	epatch "${FILESDIR}/${PN}-0.22.4-Fix-backtrace_symbols_fd-check.patch"
 	eapply_user
 
 	default
