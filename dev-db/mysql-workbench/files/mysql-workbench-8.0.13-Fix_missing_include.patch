@@ -1,0 +1,12 @@
+diff --git a/library/base/file_functions.cpp b/library/base/file_functions.cpp
+index ec4f60847..15e55b579 100644
+--- a/library/base/file_functions.cpp
++++ b/library/base/file_functions.cpp
+@@ -32,6 +32,7 @@
+ #include "base/string_utilities.h"
+ 
+ #include <glib/gstdio.h>
++#include <fcntl.h>
+ 
+ using namespace base;
+ 
