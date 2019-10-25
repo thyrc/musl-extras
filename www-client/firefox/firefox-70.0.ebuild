@@ -27,7 +27,7 @@ if [[ ${MOZ_ESR} == 1 ]] ; then
 fi
 
 # Patch version
-PATCH="${PN}-69.0-patches-06"
+PATCH="${PN}-70.0-patches-03"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/releases"
 MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.xz"
@@ -38,11 +38,11 @@ if [[ "${PV}" == *_rc* ]]; then
 	MOZ_SRC_URI="${MOZ_HTTP_URI}/source/${PN}-${MOZ_PV}.source.tar.xz -> $P.tar.xz"
 fi
 
-LLVM_MAX_SLOT=8
+LLVM_MAX_SLOT=9
 
 inherit check-reqs eapi7-ver flag-o-matic toolchain-funcs eutils \
 		gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
-		autotools mozlinguas-v2 virtualx
+		autotools mozlinguas-v2 virtualx multiprocessing eapi7-ver
 
 DESCRIPTION="Firefox Web Browser"
 HOMEPAGE="https://www.mozilla.com/firefox"
@@ -64,7 +64,7 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.45
+	>=dev-libs/nss-3.46.1
 	>=dev-libs/nspr-4.22
 	dev-libs/atk
 	dev-libs/expat
@@ -103,7 +103,7 @@ CDEPEND="
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
 	system-libvpx? ( =media-libs/libvpx-1.7*:0=[postproc] )
-	system-sqlite? ( >=dev-db/sqlite-3.28.0:3[secure-delete,debug=] )
+	system-sqlite? ( >=dev-db/sqlite-3.29.0:3[secure-delete,debug=] )
 	system-webp? ( >=media-libs/libwebp-1.0.2:0= )
 	wifi? (
 		kernel_linux? (
@@ -122,11 +122,20 @@ RDEPEND="${CDEPEND}
 DEPEND="${CDEPEND}
 	app-arch/zip
 	app-arch/unzip
-	>=dev-util/cbindgen-0.9.0
+	>=dev-util/cbindgen-0.9.1
 	>=net-libs/nodejs-8.11.0
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
 	|| (
+		(
+			sys-devel/clang:9
+			!clang? ( sys-devel/llvm:9 )
+			clang? (
+				=sys-devel/lld-9*
+				sys-devel/llvm:9[gold]
+				pgo? ( =sys-libs/compiler-rt-sanitizers-9*[profile] )
+			)
+		)
 		(
 			sys-devel/clang:8
 			!clang? ( sys-devel/llvm:8 )
@@ -157,12 +166,10 @@ DEPEND="${CDEPEND}
 	)
 	pulseaudio? ( media-sound/pulseaudio )
 	elibc_glibc? (
-		>=virtual/cargo-1.35.0
-		>=virtual/rust-1.35.0
+		>=virtual/rust-1.36.0
 	)
-	elibc_musl? ( || ( >=dev-lang/rust-1.35.0 (
-		>=virtual/cargo-1.35.0
-		>=virtual/rust-1.35.0
+	elibc_musl? ( || ( >=dev-lang/rust-1.36.0 (
+		>=virtual/rust-1.36.0
 		) )
 	)
 	wayland? ( >=x11-libs/gtk+-3.11:3[wayland] )
@@ -245,7 +252,7 @@ pkg_setup() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	if use pgo || use debug || use test ; then
+	if use pgo || use lto || use debug || use test ; then
 		CHECKREQS_DISK_BUILD="8G"
 	else
 		CHECKREQS_DISK_BUILD="4G"
@@ -264,9 +271,16 @@ src_unpack() {
 src_prepare() {
 	use !wayland && rm -f "${WORKDIR}/firefox/2019_mozilla-bug1539471.patch"
 	eapply "${WORKDIR}/firefox"
+	eapply "${FILESDIR}/${PN}-69.0-lto-gcc-fix.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
+
+	local n_jobs=$(makeopts_jobs)
+	if [[ ${n_jobs} == 1 ]]; then
+		einfo "Building with MAKEOPTS=-j1 is known to fail (bug #687028); Forcing MAKEOPTS=-j2 ..."
+		export MAKEOPTS=-j2
+	fi
 
 	# Enable gnomebreakpad
 	if use debug ; then
@@ -390,9 +404,6 @@ src_configure() {
 			if [[ $(gcc-major-version) -lt 8 ]] ; then
 				show_old_compiler_warning=1
 			fi
-
-			# Bug 689358
-			append-cxxflags -flto
 
 			if ! use cpu_flags_x86_avx2 ; then
 				local _gcc_version_with_ipa_cdtor_fix="8.3"
@@ -555,9 +566,6 @@ src_configure() {
 
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
 
-	# disable webrtc for now, bug 667642
-	use arm && mozconfig_annotate 'broken on arm' --disable-webrtc
-
 	# allow elfhack to work in combination with unstripped binaries
 	# when they would normally be larger than 2GiB.
 	append-ldflags "-Wl,--compress-debug-sections=zlib"
@@ -609,7 +617,7 @@ src_install() {
 	pax-mark m "${BUILD_OBJ_DIR}"/dist/bin/xpcshell
 
 	# Add our default prefs for firefox
-	cp "${FILESDIR}"/gentoo-default-prefs.js-2 \
+	cp "${FILESDIR}"/gentoo-default-prefs.js-3 \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
@@ -632,7 +640,7 @@ src_install() {
 	fi
 
 	# Add personal prefs
-	cat "${FILESDIR}"/my-default-prefs.js-4 >> \
+	cat "${FILESDIR}"/my-default-prefs.js-6 >> \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
