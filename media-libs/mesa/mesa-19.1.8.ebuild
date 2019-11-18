@@ -20,7 +20,7 @@ if [[ ${PV} == 9999 ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://mesa.freedesktop.org/archive/${MY_P}.tar.xz"
-	KEYWORDS="~alpha amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux ~sparc-solaris ~x64-solaris ~x86-solaris"
+	KEYWORDS="alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 s390 ~sh sparc x86 ~amd64-linux ~x86-linux ~sparc-solaris ~x64-solaris ~x86-solaris"
 fi
 
 LICENSE="MIT"
@@ -45,8 +45,8 @@ REQUIRED_USE="
 	gles1?  ( egl )
 	gles2?  ( egl )
 	vulkan? ( dri3
-	  || ( video_cards_i965 video_cards_iris video_cards_radeonsi )
-	  video_cards_radeonsi? ( llvm ) )
+			  || ( video_cards_i965 video_cards_iris video_cards_radeonsi )
+			  video_cards_radeonsi? ( llvm ) )
 	vulkan-overlay? ( vulkan )
 	wayland? ( egl gbm )
 	video_cards_freedreno?  ( gallium )
@@ -56,7 +56,7 @@ REQUIRED_USE="
 	video_cards_iris?   ( gallium )
 	video_cards_nouveau? ( || ( classic gallium ) )
 	video_cards_radeon? ( || ( classic gallium )
-	  gallium? ( x86? ( llvm ) amd64? ( llvm ) ) )
+						  gallium? ( x86? ( llvm ) amd64? ( llvm ) ) )
 	video_cards_r100?   ( classic )
 	video_cards_r200?   ( classic )
 	video_cards_r300?   ( gallium x86? ( llvm ) amd64? ( llvm ) )
@@ -70,6 +70,7 @@ REQUIRED_USE="
 
 LIBDRM_DEPSTRING=">=x11-libs/libdrm-2.4.97"
 RDEPEND="
+	!app-eselect/eselect-mesa
 	>=dev-libs/expat-2.1.0-r3:=[${MULTILIB_USEDEP}]
 	>=sys-libs/zlib-1.2.8[${MULTILIB_USEDEP}]
 	>=x11-libs/libX11-1.6.2:=[${MULTILIB_USEDEP}]
@@ -107,6 +108,7 @@ RDEPEND="
 				)
 		vaapi? (
 			>=x11-libs/libva-1.7.3:=[${MULTILIB_USEDEP}]
+			video_cards_nouveau? ( !<=x11-libs/libva-vdpau-driver-0.7.4-r3 )
 		)
 		vdpau? ( >=x11-libs/libvdpau-1.1:=[${MULTILIB_USEDEP}] )
 		xvmc? ( >=x11-libs/libXvMC-1.0.8:=[${MULTILIB_USEDEP}] )
@@ -239,7 +241,6 @@ x86? (
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-18.2.4-add-disable-tls-support.patch
-	"${FILESDIR}"/${PN}-18.1.7-adjust-cache-deflate-buffer.patch
 )
 
 llvm_check_deps() {
