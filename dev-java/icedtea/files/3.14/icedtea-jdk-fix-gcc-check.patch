@@ -1,0 +1,10 @@
+--- openjdk/common/autoconf/toolchain.m4.orig	2019-12-19 14:38:33.906804085 +0100
++++ openjdk/common/autoconf/toolchain.m4	2019-12-19 14:40:58.908905284 +0100
+@@ -426,7 +426,6 @@
+     if test $? -ne 0; then
+       AC_MSG_NOTICE([The $COMPILER_NAME compiler (located as $COMPILER) does not seem to be the required $TOOLCHAIN_TYPE compiler.])
+       AC_MSG_NOTICE([The result from running with --version was: "$COMPILER_VERSION"])
+-      AC_MSG_ERROR([A $TOOLCHAIN_TYPE compiler is required. Try setting --with-tools-dir.])
+     fi
+     # Remove Copyright and legalese from version string, and
+     # collapse into a single line
