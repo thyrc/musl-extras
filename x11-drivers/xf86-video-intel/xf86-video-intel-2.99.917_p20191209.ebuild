@@ -1,24 +1,24 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=7
 
 XORG_DRI=dri
 XORG_EAUTORECONF=yes
-inherit linux-info xorg-2 flag-o-matic
+inherit linux-info xorg-3 flag-o-matic
 
 if [[ ${PV} == 9999* ]]; then
 	SRC_URI=""
 else
-	KEYWORDS="amd64 ~x86"
-	COMMIT_ID="75795523003798d789d417e82aaa81c7ea1ed616"
-	SRC_URI="https://cgit.freedesktop.org/xorg/driver/xf86-video-intel/snapshot/${COMMIT_ID}.tar.xz -> ${P}.tar.xz"
-	S=${WORKDIR}/${COMMIT_ID}
+	KEYWORDS="amd64 x86"
+	COMMIT_ID="f66d39544bb8339130c96d282a80f87ca1606caf"
+	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
+	S="${WORKDIR}/${PN}-f66d3954-${COMMIT_ID}"
 fi
 
 DESCRIPTION="X.Org driver for Intel cards"
 
-IUSE="debug dri3 +sna tools +udev uxa xvmc"
+IUSE="debug +sna tools +udev uxa xvmc"
 
 REQUIRED_USE="
 	|| ( sna uxa )
@@ -29,13 +29,8 @@ RDEPEND="
 	x11-libs/libXScrnSaver
 	>=x11-libs/pixman-0.27.1
 	>=x11-libs/libdrm-2.4.52[video_cards_intel]
-	dri3? (
-		>=x11-base/xorg-server-1.18
-		!<=media-libs/mesa-12.0.4
-	)
-	sna? (
-		>=x11-base/xorg-server-1.10
-	)
+	>=x11-base/xorg-server-1.18
+	!<=media-libs/mesa-12.0.4
 	tools? (
 		x11-libs/libX11
 		x11-libs/libxcb
@@ -48,7 +43,7 @@ RDEPEND="
 		x11-libs/libXtst
 	)
 	udev? (
-		virtual/udev
+		virtual/libudev:=
 	)
 	xvmc? (
 		x11-libs/libXvMC
@@ -57,10 +52,11 @@ RDEPEND="
 	)
 "
 DEPEND="${RDEPEND}
-	>=x11-proto/dri2proto-2.6
-	x11-proto/dri3proto
-	x11-proto/presentproto
-	x11-proto/resourceproto"
+	x11-base/xorg-proto"
+
+PATCHES=(
+	"${FILESDIR}"/${PN}-gcc-pr65873.patch
+)
 
 src_configure() {
 	replace-flags -Os -O2
@@ -69,7 +65,7 @@ src_configure() {
 		$(use_enable debug)
 		$(use_enable dri)
 		$(use_enable dri dri3)
-		$(usex dri3 "--with-default-dri=3")
+		$(usex dri "--with-default-dri=3")
 		$(use_enable sna)
 		$(use_enable tools)
 		$(use_enable udev)
@@ -77,7 +73,7 @@ src_configure() {
 		$(use_enable xvmc)
 		--enable-kms-only
 	)
-	xorg-2_src_configure
+	xorg-3_src_configure
 }
 
 pkg_postinst() {
