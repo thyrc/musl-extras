@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: cargo.eclass
@@ -12,23 +12,28 @@
 if [[ -z ${_CARGO_ECLASS} ]]; then
 _CARGO_ECLASS=1
 
-CARGO_DEPEND=""
-[[ ${CATEGORY}/${PN} != dev-util/cargo ]] && CARGO_DEPEND="|| ( >=dev-lang/rust-1.30.1-r1 ( virtual/cargo ) )"
+# we need this for 'cargo vendor' subcommand and net.offline config knob
+RUST_DEPEND="elibc_glibc? ( >=dev-lang/rust-1.37.0 ) elibc_musl? ( || ( >=dev-lang/rust-1.37.0 ( >=virtual/rust-1.37.0 ) ) )"
 
 case ${EAPI} in
-	6) DEPEND="${CARGO_DEPEND}";;
-	7) BDEPEND="${CARGO_DEPEND}";;
+	6) DEPEND="${RUST_DEPEND}";;
+	7) BDEPEND="${RUST_DEPEND}";;
 	*) die "EAPI=${EAPI:-0} is not supported" ;;
 esac
 
 inherit multiprocessing
 
-EXPORT_FUNCTIONS src_unpack src_compile src_install
+EXPORT_FUNCTIONS src_unpack src_compile src_install src_test
 
 IUSE="${IUSE} debug"
 
 ECARGO_HOME="${WORKDIR}/cargo_home"
 ECARGO_VENDOR="${ECARGO_HOME}/gentoo"
+
+# @ECLASS-VARIABLE: CARGO_INSTALL_PATH
+# @DESCRIPTION:
+# Allows overriding the default cwd to run cargo install from
+: ${CARGO_INSTALL_PATH:=.}
 
 # @FUNCTION: cargo_crate_uris
 # @DESCRIPTION:
@@ -98,9 +103,36 @@ cargo_src_unpack() {
 	cargo_gen_config
 }
 
+# @FUNCTION: cargo_live_src_unpack
+# @DESCRIPTION:
+# Runs 'cargo fetch' and vendors downloaded crates for offline use, used in live ebuilds
+
+cargo_live_src_unpack() {
+	debug-print-function ${FUNCNAME} "$@"
+
+	[[ "${PV}" == *9999* ]] || die "${FUNCNAME} only allowed in live/9999 ebuilds"
+	[[ "${EBUILD_PHASE}" == unpack ]] || die "${FUNCNAME} only allowed in src_unpack"
+
+	mkdir -p "${S}" || die
+
+	pushd "${S}" > /dev/null || die
+	CARGO_HOME="${ECARGO_HOME}" cargo fetch || die
+	CARGO_HOME="${ECARGO_HOME}" cargo vendor "${ECARGO_VENDOR}" || die
+	popd > /dev/null || die
+
+	cargo_gen_config
+}
+
 # @FUNCTION: cargo_gen_config
 # @DESCRIPTION:
-# Generate the $CARGO_HOME/config necessary to use our local registry
+# Generate the $CARGO_HOME/config necessary to use our local registry and settings.
+# Cargo can also be configured through environment variables in addition to the TOML syntax below.
+# For each configuration key below of the form foo.bar the environment variable CARGO_FOO_BAR
+# can also be used to define the value.
+# Environment variables will take precedent over TOML configuration,
+# and currently only integer, boolean, and string keys are supported.
+# For example the build.jobs key can also be defined by CARGO_BUILD_JOBS.
+# Or setting CARGO_TERM_VERBOSE=false in make.conf will make build quieter.
 cargo_gen_config() {
 	debug-print-function ${FUNCNAME} "$@"
 
@@ -111,7 +143,18 @@ cargo_gen_config() {
 	[source.crates-io]
 	replace-with = "gentoo"
 	local-registry = "/nonexistant"
+
+	[net]
+	offline = true
+
+	[build]
+	jobs = $(makeopts_jobs)
+
+	[term]
+	verbose = true
 	EOF
+	# honor NOCOLOR setting
+	[[ "${NOCOLOR}" = true || "${NOCOLOR}" = yes ]] && echo "color = 'never'" >> "${ECARGO_HOME}/config"
 }
 
 # @FUNCTION: cargo_src_compile
@@ -122,7 +165,7 @@ cargo_src_compile() {
 
 	export CARGO_HOME="${ECARGO_HOME}"
 
-	cargo build -j $(makeopts_jobs) $(usex debug "" --release) \
+	cargo build $(usex debug "" --release) "$@" \
 		|| die "cargo build failed"
 }
 
@@ -132,11 +175,23 @@ cargo_src_compile() {
 cargo_src_install() {
 	debug-print-function ${FUNCNAME} "$@"
 
-	cargo install -j $(makeopts_jobs) --root="${D}/usr" $(usex debug --debug "") \
+	cargo install --path ${CARGO_INSTALL_PATH} \
+		--root="${ED}/usr" $(usex debug --debug "") "$@" \
 		|| die "cargo install failed"
-	rm -f "${D}/usr/.crates.toml"
+	rm -f "${ED}/usr/.crates.toml"
+	rm -f "${ED}/usr/.crates2.json"
 
 	[ -d "${S}/man" ] && doman "${S}/man" || return 0
+}
+
+# @FUNCTION: cargo_src_test
+# @DESCRIPTION:
+# Test the package using cargo test
+cargo_src_test() {
+	debug-print-function ${FUNCNAME} "$@"
+
+	cargo test $(usex debug "" --release) "$@" \
+		|| die "cargo test failed"
 }
 
 fi

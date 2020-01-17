@@ -1,0 +1,13 @@
+diff --git a/src/firejail/fs.c b/src/firejail/fs.c
+index 316057e..4b5dc93 100644
+--- a/src/firejail/fs.c
++++ b/src/firejail/fs.c
+@@ -463,7 +463,7 @@ void fs_tmpfs(const char *dir, unsigned check_owner) {
+ 	struct statvfs buf;
+ 	if (fstatvfs(fd, &buf) == -1)
+ 		errExit("fstatvfs");
+-	unsigned long flags = buf.f_flag & ~(MS_RDONLY|MS_BIND);
++	unsigned long flags = buf.f_flag & (MS_NOSUID|MS_NODEV|MS_NOEXEC|MS_MANDLOCK|MS_STRICTATIME|MS_NODIRATIME|MS_RELATIME|MS_NOATIME);
+ 	// mount via the symbolic link in /proc/self/fd
+ 	char *proc;
+ 	if (asprintf(&proc, "/proc/self/fd/%d", fd) == -1)
