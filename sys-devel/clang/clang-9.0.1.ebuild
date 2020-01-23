@@ -5,7 +5,7 @@ EAPI=7
 
 PYTHON_COMPAT=( python{2_7,3_{6,7}} )
 inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing \
-	pax-utils python-single-r1 toolchain-funcs
+	pax-utils python-single-r1 prefix toolchain-funcs
 
 MANPAGE_P=llvm-9.0.0-manpages
 DESCRIPTION="C language family frontend for LLVM"
@@ -101,6 +101,9 @@ src_unpack() {
 
 src_prepare() {
 	use hardened && eapply "${HARDENED_PATCHES[@]}"
+
+	cmake-utils_src_prepare
+	eprefixify lib/Frontend/InitHeaderSearch.cpp
 }
 
 multilib_src_configure() {
