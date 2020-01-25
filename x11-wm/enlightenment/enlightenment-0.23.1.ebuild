@@ -50,17 +50,22 @@ DEPEND="${RDEPEND}"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-0.22.3-Fix-backtrace_symbols_fd-check.patch"
+	"${FILESDIR}/${PN}-0.23.1-Remove_eeze_dependency.patch"
 )
 
 
 src_configure() {
 	local emesonargs=(
-		-D device-udev=true
+		-D device-udev=false
 		-D install-enlightenment-menu=true
 
 		-D bluez4=false
 		-D install-sysactions=false
 		-D mount-eeze=false
+
+		# disable modules that depend on eeze
+		-D battery=false
+		-D sysinfo=false
 
 		$(meson_use udisks mount-udisks)
 		$(meson_use bluetooth bluez5)

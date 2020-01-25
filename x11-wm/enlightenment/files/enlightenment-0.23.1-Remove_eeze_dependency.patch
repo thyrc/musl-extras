@@ -1,0 +1,19 @@
+diff --git a/meson.build b/meson.build
+index 3858feb..b068c95 100644
+--- a/meson.build
++++ b/meson.build
+@@ -222,10 +222,10 @@ if get_option('systemd') == true
+   endif
+ endif
+ 
+-if host_os.startswith('linux') and cc.has_function('eeze_disk_function', dependencies: dependency('eeze')) == true
+-  config_h.set('HAVE_EEZE_MOUNT', '1')
+-  eeze_mount = true
+-endif
++# if host_os.startswith('linux') and cc.has_function('eeze_disk_function', dependencies: dependency('eeze')) == true
++#   config_h.set('HAVE_EEZE_MOUNT', '1')
++#   eeze_mount = true
++# endif
+ 
+ if get_option('files') == true
+   config_h.set('ENABLE_FILES', '1')
