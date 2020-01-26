@@ -63,8 +63,6 @@ src_configure() {
 		-D install-sysactions=false
 		-D mount-eeze=false
 
-		# disable modules that depend on eeze
-		-D battery=false
 		-D sysinfo=false
 
 		$(meson_use udisks mount-udisks)
