@@ -105,6 +105,7 @@ QA_SONAME="usr/lib.*/librustc_macros.*.so"
 
 PATCHES=(
 	"${FILESDIR}"/1.40.0-add-soname.patch
+	"${FILESDIR}"/${PN}-1.39.0-Require-static-native-libraries-when-linking-static.patch
 	"${FILESDIR}"/${PN}-1.40.0-Remove-nostdlib-and-musl_root.patch
 	"${FILESDIR}"/${PN}-1.33.0-Switch-musl-targets-to-link-dynamically-by-default.patch
 	"${FILESDIR}"/${PN}-1.41.0-Fix-vendor-linux_musl_base-checksum.patch
