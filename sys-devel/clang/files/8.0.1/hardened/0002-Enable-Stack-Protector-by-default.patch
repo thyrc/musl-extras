@@ -1,0 +1,27 @@
+diff --git a/lib/Driver/ToolChains/Linux.cpp b/lib/Driver/ToolChains/Linux.cpp
+index 1810f04c..df394b8b 100644
+--- a/lib/Driver/ToolChains/Linux.cpp
++++ b/lib/Driver/ToolChains/Linux.cpp
+@@ -977,6 +977,10 @@ bool Linux::isPIEDefault() const {
+           getTriple().isMusl() || getSanitizerArgs().requiresPIE();
+ }
+ 
++unsigned Linux::GetDefaultStackProtectorLevel(bool KernelOrKext) const {
++  return 2;
++}
++
+ bool Linux::IsMathErrnoDefault() const {
+   if (getTriple().isAndroid())
+     return false;
+diff --git a/lib/Driver/ToolChains/Linux.h b/lib/Driver/ToolChains/Linux.h
+index 4a662cb4..2ddd4056 100644
+--- a/lib/Driver/ToolChains/Linux.h
++++ b/lib/Driver/ToolChains/Linux.h
+@@ -39,6 +39,7 @@ public:
+                            llvm::opt::ArgStringList &CC1Args) const override;
+   CXXStdlibType GetDefaultCXXStdlibType() const override;
+   bool isPIEDefault() const override;
++  unsigned GetDefaultStackProtectorLevel(bool KernelOrKext) const override;
+   bool IsMathErrnoDefault() const override;
+   SanitizerMask getSupportedSanitizers() const override;
+   void addProfileRTLibs(const llvm::opt::ArgList &Args,

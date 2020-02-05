@@ -13,7 +13,7 @@ else
 	KEYWORDS="amd64 x86"
 	COMMIT_ID="f66d39544bb8339130c96d282a80f87ca1606caf"
 	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
-	S="${WORKDIR}/${PN}-f66d3954-${COMMIT_ID}"
+	S="${WORKDIR}/${PN}-${COMMIT_ID}"
 fi
 
 DESCRIPTION="X.Org driver for Intel cards"
