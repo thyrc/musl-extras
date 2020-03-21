@@ -1,0 +1,14 @@
+diff --git a/src/bootstrap/lib.rs b/src/bootstrap/lib.rs
+index fbd1a52e9..d4b348664 100644
+--- a/src/bootstrap/lib.rs
++++ b/src/bootstrap/lib.rs
+@@ -759,7 +759,8 @@ impl Build {
+             .args()
+             .iter()
+             .map(|s| s.to_string_lossy().into_owned())
+-            .filter(|s| !s.starts_with("-O") && !s.starts_with("/O"))
++            .filter(|s| !s.starts_with("-O") && !s.starts_with("/O")
++                && !s.starts_with("-static"))
+             .collect::<Vec<String>>();
+ 
+         // If we're compiling on macOS then we add a few unconditional flags
