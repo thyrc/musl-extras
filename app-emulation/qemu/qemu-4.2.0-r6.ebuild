@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-PYTHON_COMPAT=( python{3_6,3_7} )
+PYTHON_COMPAT=( python{3_6,3_7,3_8} )
 PYTHON_REQ_USE="ncurses,readline"
 
 PLOCALES="bg de_DE fr_FR hu it tr zh_CN"
@@ -24,7 +24,7 @@ if [[ ${PV} = *9999* ]]; then
 	SRC_URI=""
 else
 	SRC_URI="https://download.qemu.org/${P}.tar.xz
-		https://dev.gentoo.org/~tamiko/distfiles/${P}-patches-r1.tar.xz"
+		https://dev.gentoo.org/~tamiko/distfiles/${P}-patches-r2.tar.xz"
 	KEYWORDS="amd64 ~arm64 ~ppc ~ppc64 x86"
 fi
 
@@ -231,10 +231,9 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-3.1.0-xattr_size_max.patch
 
 	"${FILESDIR}"/${PN}-2.5.0-cflags.patch
-	"${FILESDIR}"/${PN}-2.5.0-sysmacros.patch
 	"${FILESDIR}"/${PN}-2.11.1-capstone_include_path.patch
-	"${FILESDIR}"/${PN}-4.0.0-sanitize-interp_info.patch
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
+	"${FILESDIR}"/${PN}-4.2.0-ati-vga-crash.patch #719266
 	"${WORKDIR}"/patches
 )
 
@@ -389,7 +388,7 @@ src_prepare() {
 	default
 
 	# Use correct toolchain to fix cross-compiling
-	tc-export AR LD NM OBJCOPY PKG_CONFIG
+	tc-export AR LD NM OBJCOPY PKG_CONFIG RANLIB
 	export WINDRES=${CHOST}-windres
 
 	# Verbose builds
@@ -511,10 +510,12 @@ qemu_src_configure() {
 	if [[ ! ${buildtype} == "user" ]] ; then
 		# audio options
 		local audio_opts=(
+			# Note: backend order matters here: #716202
+			# We iterate from higher-level to lower level.
+			$(usex pulseaudio pa "")
+			$(usev sdl)
 			$(usev alsa)
 			$(usev oss)
-			$(usev sdl)
-			$(usex pulseaudio pa "")
 		)
 		conf_opts+=(
 			--audio-drv-list=$(printf "%s," "${audio_opts[@]}")
@@ -624,8 +625,7 @@ src_test() {
 	if [[ -n ${softmmu_targets} ]]; then
 		cd "${S}/softmmu-build"
 		pax-mark m */qemu-system-* #515550
-		emake -j1 check
-		emake -j1 check-report.html
+		emake check
 	fi
 }
 
