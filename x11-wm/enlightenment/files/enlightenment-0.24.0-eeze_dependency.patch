@@ -1,0 +1,113 @@
+diff --git a/meson.build b/meson.build
+index c6723a8..c53036d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -246,9 +246,11 @@ if get_option('systemd') == true
+   endif
+ endif
+ 
+-if host_os.startswith('linux') and cc.has_function('eeze_disk_function', dependencies: dependency('eeze')) == true
+-  config_h.set('HAVE_EEZE_MOUNT', '1')
+-  eeze_mount = true
++if get_option('device-udev') == true
++  if host_os.startswith('linux') and cc.has_function('eeze_disk_function', dependencies: dependency('eeze')) == true
++    config_h.set('HAVE_EEZE_MOUNT', '1')
++    eeze_mount = true
++  endif
+ endif
+ 
+ if get_option('files') == true
+diff --git a/src/modules/wizard/page_120.c b/src/modules/wizard/page_120.c
+index 1c8fbbf..fa3fe47 100644
+--- a/src/modules/wizard/page_120.c
++++ b/src/modules/wizard/page_120.c
+@@ -117,58 +117,53 @@ wizard_page_show(E_Wizard_Page *pg EINA_UNUSED)
+ #ifdef HAVE_EEZE
+    tempdevs = eeze_udev_find_by_type(EEZE_UDEV_TYPE_IS_IT_HOT_OR_IS_IT_COLD_SENSOR, NULL);
+ #endif
+-   if (tempdevs && (eina_list_count(tempdevs)))
+-     hav_temperature = 1;
+-   else
+-     {
+-        int i = 0;
++   int i = 0;
+ 
+-        while(sensor_path[i] != NULL)
++   while(sensor_path[i] != NULL)
++     {
++        if (ecore_file_exists(sensor_path[i]))
+           {
+-             if (ecore_file_exists(sensor_path[i]))
+-               {
+-                  hav_temperature = 1;
+-                  break;
+-               }
+-             i++;
++             hav_temperature = 1;
++             break;
+           }
++        i++;
++     }
+ 
+-        if (!hav_temperature)
+-          {
+-             Eina_List *therms;
++   if (!hav_temperature)
++     {
++        Eina_List *therms;
+ 
+-             therms = _wizard_temperature_get_bus_files("i2c");
+-             if (therms)
++        therms = _wizard_temperature_get_bus_files("i2c");
++        if (therms)
++          {
++             char *name;
++             if ((name = eina_list_data_get(therms)))
+                {
+-                  char *name;
+-                  if ((name = eina_list_data_get(therms)))
++                  if (ecore_file_exists(name))
+                     {
+-                       if (ecore_file_exists(name))
+-                         {
+-                            hav_temperature = 1;
+-                         }
++                       hav_temperature = 1;
+                     }
+-                  eina_list_free(therms);
+                }
++             eina_list_free(therms);
+           }
++     }
+ 
+-        if (!hav_temperature)
+-          {
+-             Eina_List *therms;
++   if (!hav_temperature)
++     {
++        Eina_List *therms;
+ 
+-             therms = _wizard_temperature_get_bus_files("pci");
+-             if (therms)
++        therms = _wizard_temperature_get_bus_files("pci");
++        if (therms)
++          {
++             char *name;
++             if ((name = eina_list_data_get(therms)))
+                {
+-                  char *name;
+-                  if ((name = eina_list_data_get(therms)))
++                  if (ecore_file_exists(name))
+                     {
+-                       if (ecore_file_exists(name))
+-                         {
+-                            hav_temperature = 1;
+-                         }
++                       hav_temperature = 1;
+                     }
+-                  eina_list_free(therms);
+                }
++             eina_list_free(therms);
+           }
+      }
+ #endif
