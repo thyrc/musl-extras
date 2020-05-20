@@ -250,8 +250,7 @@ PATCHES=(
 
 	# Alpine Linux patches
 	"${FILESDIR}/${PN}-5.4.2.2-musl-fix-execinfo.patch"
-	"${FILESDIR}/${PN}-5.4.2.2-linux-musl.patch"
-	"${FILESDIR}/${PN}-6.1.4.2-fix-includes.patch"
+	"${FILESDIR}/${PN}-6.4.3.2-linux-musl.patch"
 	"${FILESDIR}/${PN}-6.1.0.3-musl-stacksize.patch"
 	"${FILESDIR}/${PN}-6.1.4.2-disable-liborcus-unittest.patch"
 
