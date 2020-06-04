@@ -1,8 +1,8 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python{3_5,3_6,3_7} )
+PYTHON_COMPAT=( python{3_6,3_7} )
 
 inherit flag-o-matic gnome.org gnome2-utils linux-info meson multilib multilib-minimal python-any-r1 toolchain-funcs xdg
 
@@ -12,8 +12,9 @@ HOMEPAGE="https://www.gtk.org/"
 LICENSE="LGPL-2.1+"
 SLOT="2"
 IUSE="dbus debug elibc_glibc fam gtk-doc kernel_linux +mime selinux static-libs systemtap test utils xattr"
+RESTRICT="!test? ( test )"
 
-KEYWORDS="alpha amd64 arm arm64 ~hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 ~sh sparc x86 ~amd64-linux ~x86-linux"
+KEYWORDS="amd64 arm arm64 ~mips ppc ppc64 x86"
 
 # * libelf isn't strictly necessary, but makes gresource tool more useful, and
 # the check is automagic in gio/meson.build. gresource is not a multilib tool
@@ -78,7 +79,6 @@ pkg_setup() {
 }
 
 src_prepare() {
-
 	# Musl fix
 	eapply "${FILESDIR}/2.56.2-quark_init_on_demand.patch"
 	eapply "${FILESDIR}/2.56.2-gobject_init_on_demand.patch"
@@ -122,10 +122,6 @@ src_prepare() {
 	sed -i -e '/subdir.*fuzzing/d' meson.build || die
 
 	# gdbus-codegen is a separate package
-	sed -i -e 's/install.*true/install : false/g' gio/gdbus-2.0/codegen/meson.build || die
-	# Older than meson-0.50 doesn't know about install kwarg for configure_file; for that we need to remove the install_dir kwarg.
-	# Upstream will remove the install kwarg in a future version to require only meson-0.49.2 or newer, at which point the
-	# install_dir removal only should be kept.
 	sed -i -e '/install_dir/d' gio/gdbus-2.0/codegen/meson.build || die
 
 	# Same kind of meson-0.50 issue with some installed-tests files; will likely be fixed upstream soon
@@ -173,6 +169,7 @@ multilib_src_configure() {
 		$(meson_use fam)
 		-Dinstalled_tests=false
 		-Dnls=enabled
+		-Doss_fuzz=disabled
 	)
 	meson_src_configure
 }
