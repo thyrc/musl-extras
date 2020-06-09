@@ -21,7 +21,7 @@ else
 	KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 fi
 
-RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).0"
+RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).1"
 
 DESCRIPTION="Systems programming language from Mozilla"
 HOMEPAGE="https://www.rust-lang.org/"
@@ -106,28 +106,30 @@ QA_FLAGS_IGNORED="
 	usr/lib/rustlib/.*/lib/lib.*.so
 "
 
+QA_SONAME="
+	usr/lib.*/lib.*.so
+	usr/lib.*/librustc_macros.*.s
+"
+
 # tests need a bit more work, currently they are causing multiple
 # re-compilations and somewhat fragile.
 RESTRICT="test"
 
-QA_SONAME="usr/lib.*/librustc_macros.*.so"
-
 PATCHES=(
-	"${FILESDIR}"/1.40.0-add-soname.patch
 	"${FILESDIR}"/0012-Ignore-broken-and-non-applicable-tests.patch
-	"${FILESDIR}"/1.43.0-llvm10.patch
-	"${FILESDIR}"/1.42.0-libressl.patch
+	"${FILESDIR}"/1.44.0-libressl.patch
 
 	# musl patches
-	"${FILESDIR}"/${PN}-1.39.0-Require-static-native-libraries-when-linking-static.patch
+	"${FILESDIR}"/${PN}-1.44.0-Require-static-native-libraries-when-linking-static.patch
 	"${FILESDIR}"/${PN}-1.43.0-Remove-nostdlib-and-musl_root.patch
 	"${FILESDIR}"/${PN}-1.33.0-Switch-musl-targets-to-link-dynamically-by-default.patch
-	"${FILESDIR}"/${PN}-1.43.0-Fix-vendor-linux_musl_base-checksum.patch
-	"${FILESDIR}"/${PN}-1.42.0-Fix-LLVM-build.patch
-	"${FILESDIR}"/${PN}-1.33.0-liblibc.patch
-	"${FILESDIR}"/${PN}-1.42.0-Fix-vendor-liblibc-checksum.patch
-	"${FILESDIR}"/${PN}-1.40.0-Avoid_LLVM_name_conflicts.patch
-	"${FILESDIR}"/${PN}-1.40.0-llvm-secureplt.patch
+	"${FILESDIR}"/${PN}-1.44.0-Fix-vendor-linux_musl_base-checksum.patch
+	"${FILESDIR}"/${PN}-1.44.0-Link-musl-dynamically.patch
+	"${FILESDIR}"/${PN}-1.44.0-Fix-vendor-liblibc-checksum-r2.patch
+	"${FILESDIR}"/${PN}-1.44.0-Prefer-libgcc_eh-over-libunwind-on-musl.patch
+	# "${FILESDIR}"/${PN}-1.40.0-Avoid_LLVM_name_conflicts.patch
+	# "${FILESDIR}"/${PN}-1.40.0-llvm-secureplt.patch
+
 )
 
 S="${WORKDIR}/${MY_P}-src"
@@ -154,6 +156,8 @@ pkg_setup() {
 	pre_build_checks
 	python-any-r1_pkg_setup
 
+	# required to link agains system libs, otherwise
+	# crates use bundled sources and compile own static version
 	export LIBGIT2_SYS_USE_PKG_CONFIG=1
 	export LIBSSH2_SYS_USE_PKG_CONFIG=1
 	export PKG_CONFIG_ALLOW_CROSS=1
@@ -308,12 +312,12 @@ src_configure() {
 }
 
 src_compile() {
-	env $(cat "${S}"/config.env) RUST_BACKTRACE=1 \
+	env $(cat "${S}"/config.env) RUST_BACKTRACE=1\
 		"${EPYTHON}" ./x.py build -vv --config="${S}"/config.toml -j$(makeopts_jobs) || die
 }
 
 src_test() {
-	env $(cat "${S}"/config.env) RUST_BACKTRACE=1 \
+	env $(cat "${S}"/config.env) RUST_BACKTRACE=1\
 		"${EPYTHON}" ./x.py test -vv --config="${S}"/config.toml -j$(makeopts_jobs) --no-doc --no-fail-fast \
 		src/test/codegen \
 		src/test/codegen-units \

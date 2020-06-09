@@ -123,7 +123,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-1.43.0-Remove-nostdlib-and-musl_root.patch
 	"${FILESDIR}"/${PN}-1.33.0-Switch-musl-targets-to-link-dynamically-by-default.patch
 	"${FILESDIR}"/${PN}-1.43.0-Fix-vendor-linux_musl_base-checksum.patch
-	"${FILESDIR}"/${PN}-1.42.0-Fix-LLVM-build.patch
+	# "${FILESDIR}"/${PN}-1.42.0-Fix-LLVM-build.patch
 	"${FILESDIR}"/${PN}-1.33.0-liblibc.patch
 	"${FILESDIR}"/${PN}-1.42.0-Fix-vendor-liblibc-checksum.patch
 	"${FILESDIR}"/${PN}-1.40.0-Avoid_LLVM_name_conflicts.patch
@@ -154,6 +154,8 @@ pkg_setup() {
 	pre_build_checks
 	python-any-r1_pkg_setup
 
+	# required to link agains system libs, otherwise
+	# crates use bundled sources and compile own static version
 	export LIBGIT2_SYS_USE_PKG_CONFIG=1
 	export LIBSSH2_SYS_USE_PKG_CONFIG=1
 	export PKG_CONFIG_ALLOW_CROSS=1
@@ -308,12 +310,12 @@ src_configure() {
 }
 
 src_compile() {
-	env $(cat "${S}"/config.env) RUST_BACKTRACE=1 \
+	env $(cat "${S}"/config.env) RUST_BACKTRACE=1\
 		"${EPYTHON}" ./x.py build -vv --config="${S}"/config.toml -j$(makeopts_jobs) || die
 }
 
 src_test() {
-	env $(cat "${S}"/config.env) RUST_BACKTRACE=1 \
+	env $(cat "${S}"/config.env) RUST_BACKTRACE=1\
 		"${EPYTHON}" ./x.py test -vv --config="${S}"/config.toml -j$(makeopts_jobs) --no-doc --no-fail-fast \
 		src/test/codegen \
 		src/test/codegen-units \
