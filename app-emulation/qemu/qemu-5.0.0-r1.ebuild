@@ -23,8 +23,7 @@ if [[ ${PV} = *9999* ]]; then
 	inherit git-r3
 	SRC_URI=""
 else
-	SRC_URI="https://download.qemu.org/${P}.tar.xz
-		https://dev.gentoo.org/~tamiko/distfiles/${P}-patches-r2.tar.xz"
+	SRC_URI="https://download.qemu.org/${P}.tar.xz"
 	KEYWORDS="amd64 ~arm64 ~ppc ~ppc64 x86"
 fi
 
@@ -35,18 +34,20 @@ LICENSE="GPL-2 LGPL-2 BSD-2"
 SLOT="0"
 
 IUSE="accessibility +aio alsa bzip2 capstone +caps +curl debug doc
-	+fdt glusterfs gnutls gtk infiniband iscsi jemalloc +jpeg kernel_linux
-	kernel_FreeBSD lzo ncurses nfs nls numa opengl +oss +pin-upstream-blobs
+	+fdt glusterfs gnutls gtk infiniband iscsi io-uring
+	jemalloc +jpeg kernel_linux
+	kernel_FreeBSD lzo multipath
+	ncurses nfs nls numa opengl +oss +pin-upstream-blobs
 	plugins +png pulseaudio python rbd sasl +seccomp sdl sdl-image selinux
 	smartcard snappy spice ssh static static-user systemtap tci test usb
 	usbredir vde +vhost-net vhost-user-fs virgl virtfs +vnc vte xattr xen
-	xfs +xkb"
+	xfs +xkb zstd"
 
 COMMON_TARGETS="aarch64 alpha arm cris hppa i386 m68k microblaze microblazeel
 	mips mips64 mips64el mipsel nios2 or1k ppc ppc64 riscv32 riscv64 s390x
 	sh4 sh4eb sparc sparc64 x86_64 xtensa xtensaeb"
 IUSE_SOFTMMU_TARGETS="${COMMON_TARGETS}
-	lm32 moxie tricore unicore32"
+	lm32 moxie rx tricore unicore32"
 IUSE_USER_TARGETS="${COMMON_TARGETS}
 	aarch64_be armeb mipsn32 mipsn32el ppc64abi32 ppc64le sparc32plus
 	tilegx"
@@ -68,7 +69,7 @@ REQUIRED_USE="${PYTHON_REQUIRED_USE}
 	qemu_softmmu_targets_riscv64? ( fdt )
 	static? ( static-user !alsa !gtk !opengl !pulseaudio !plugins !rbd !snappy )
 	static-user? ( !plugins )
-	virtfs? ( xattr )
+	virtfs? ( caps xattr )
 	vte? ( gtk )
 	plugins? ( !static !static-user )
 "
@@ -120,9 +121,11 @@ SOFTMMU_TOOLS_DEPEND="
 		sys-fabric/librdmacm:=[static-libs(+)]
 	)
 	iscsi? ( net-libs/libiscsi )
+	io-uring? ( sys-libs/liburing[static-libs(+)] )
 	jemalloc? ( dev-libs/jemalloc )
 	jpeg? ( virtual/jpeg:0=[static-libs(+)] )
 	lzo? ( dev-libs/lzo:2[static-libs(+)] )
+	multipath? ( sys-fs/multipath-tools )
 	ncurses? (
 		sys-libs/ncurses:0=[unicode]
 		sys-libs/ncurses:0=[static-libs(+)]
@@ -140,7 +143,7 @@ SOFTMMU_TOOLS_DEPEND="
 	rbd? ( sys-cluster/ceph )
 	sasl? ( dev-libs/cyrus-sasl[static-libs(+)] )
 	sdl? (
-		media-libs/libsdl2[X]
+		media-libs/libsdl2[video]
 		media-libs/libsdl2[static-libs(+)]
 	)
 	sdl-image? ( media-libs/sdl2-image[static-libs(+)] )
@@ -158,7 +161,9 @@ SOFTMMU_TOOLS_DEPEND="
 	virgl? ( media-libs/virglrenderer[static-libs(+)] )
 	virtfs? ( sys-libs/libcap )
 	xen? ( app-emulation/xen-tools:= )
-	xfs? ( sys-fs/xfsprogs[static-libs(+)] )"
+	xfs? ( sys-fs/xfsprogs[static-libs(+)] )
+	zstd? ( >=app-arch/zstd-1.4.0[static-libs(+)] )
+"
 
 X86_FIRMWARE_DEPEND="
 	pin-upstream-blobs? (
@@ -216,7 +221,6 @@ RDEPEND="${CDEPEND}
 
 PATCHES=(
 	# Alpine Linux patches
-	"${FILESDIR}"/${PN}-3.1.0-0001-elfload-load-PIE-executables-to-right-address.patch
 	"${FILESDIR}"/${PN}-3.1.0-0001-linux-user-fix-build-with-musl-on-aarch64.patch
 	"${FILESDIR}"/${PN}-3.1.0-0001-linux-user-fix-build-with-musl-on-ppc64le.patch
 	"${FILESDIR}"/${PN}-4.2.0-0006-linux-user-signal.c-define-__SIGRTMIN-MAX-for-non-GN.patch
@@ -230,11 +234,11 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-3.1.0-test-crypto-ivgen-skip-essiv.patch
 	"${FILESDIR}"/${PN}-3.1.0-xattr_size_max.patch
 
-	"${FILESDIR}"/${PN}-2.5.0-cflags.patch
 	"${FILESDIR}"/${PN}-2.11.1-capstone_include_path.patch
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
-	"${FILESDIR}"/${PN}-4.2.0-ati-vga-crash.patch #719266
-	"${WORKDIR}"/patches
+	"${FILESDIR}"/${PN}-4.2.0-cflags.patch
+	"${FILESDIR}"/${PN}-5.0.0-epoll-strace.patch
+	"${FILESDIR}"/${PN}-5.0.0-ipv6-slirp-CVE-2020-10756.patch #731992
 )
 
 QA_PREBUILT="
@@ -293,7 +297,7 @@ For systemd:
 
 pkg_pretend() {
 	if use kernel_linux && kernel_is lt 2 6 25; then
-		eerror "This version of KVM requres a host kernel of 2.6.25 or higher."
+		eerror "This version of KVM requires a host kernel of 2.6.25 or higher."
 	elif use kernel_linux; then
 		if ! linux_config_exists; then
 			eerror "Unable to check your kernel for KVM support"
@@ -388,7 +392,7 @@ src_prepare() {
 	default
 
 	# Use correct toolchain to fix cross-compiling
-	tc-export AR LD NM OBJCOPY PKG_CONFIG RANLIB
+	tc-export AR AS LD NM OBJCOPY PKG_CONFIG RANLIB
 	export WINDRES=${CHOST}-windres
 
 	# Verbose builds
@@ -454,7 +458,6 @@ qemu_src_configure() {
 		fi
 	}
 	conf_opts+=(
-		--disable-bluez
 		$(conf_notuser accessibility brlapi)
 		$(conf_notuser aio linux-aio)
 		$(conf_notuser bzip2)
@@ -468,10 +471,12 @@ qemu_src_configure() {
 		$(conf_notuser gtk)
 		$(conf_notuser infiniband rdma)
 		$(conf_notuser iscsi libiscsi)
+		$(conf_notuser io-uring linux-io-uring)
 		$(conf_notuser jemalloc jemalloc)
 		$(conf_notuser jpeg vnc-jpeg)
 		$(conf_notuser kernel_linux kvm)
 		$(conf_notuser lzo)
+		$(conf_notuser multipath mpath)
 		$(conf_notuser ncurses curses)
 		$(conf_notuser nfs libnfs)
 		$(conf_notuser numa)
@@ -499,6 +504,7 @@ qemu_src_configure() {
 		$(conf_notuser xen xen-pci-passthrough)
 		$(conf_notuser xfs xfsctl)
 		$(conf_notuser xkb xkbcommon)
+		$(conf_notuser zstd)
 	)
 
 	if [[ ${buildtype} == "user" ]] ; then
