@@ -124,10 +124,8 @@ PATCHES=(
 	"${FILESDIR}"/1.47.0-ignore-broken-and-non-applicable-tests.patch
 
 	# musl patches
-	"${FILESDIR}"/${PN}-1.45.0-Require-static-native-libraries-when-linking-static.patch
 	"${FILESDIR}"/${PN}-1.33.0-Switch-musl-targets-to-link-dynamically-by-default.patch
 	"${FILESDIR}"/${PN}-1.33.0-liblibc.patch
-
 )
 
 S="${WORKDIR}/${MY_P}-src"
