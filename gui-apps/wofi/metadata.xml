@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+    <maintainer type="person">
+        <email>thyrc@users.noreply.github.com</email>
+        <name>thyrc</name>
+    </maintainer>
+	<description>launcher for wlroots based compositors</description>
+    <use>
+        <flag name="run">Enable run mode.</flag>
+        <flag name="drun">Enable drun mode.</flag>
+        <flag name="dmenu">Enable dmenu mode.</flag>
+    </use>
+</pkgmetadata>
