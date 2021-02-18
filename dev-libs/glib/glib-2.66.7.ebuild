@@ -1,8 +1,8 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python{3_6,3_7} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 
 inherit flag-o-matic gnome.org gnome2-utils linux-info meson multilib multilib-minimal python-any-r1 toolchain-funcs xdg
 
@@ -11,15 +11,18 @@ HOMEPAGE="https://www.gtk.org/"
 
 LICENSE="LGPL-2.1+"
 SLOT="2"
-IUSE="dbus debug elibc_glibc fam gtk-doc kernel_linux +mime selinux static-libs systemtap test utils xattr"
+IUSE="dbus debug elibc_glibc fam gtk-doc kernel_linux +mime selinux static-libs sysprof systemtap test utils xattr"
 RESTRICT="!test? ( test )"
 
-KEYWORDS="amd64 arm arm64 ~mips ppc ppc64 x86"
+KEYWORDS="amd64 arm arm64 ~mips ~ppc ~ppc64 x86"
 
 # * libelf isn't strictly necessary, but makes gresource tool more useful, and
 # the check is automagic in gio/meson.build. gresource is not a multilib tool
 # right now, thus it doesn't matter if non-native ABI libelf exists or not
 # (non-native binary is overwritten, it doesn't matter if libelf was linked to).
+# * elfutils (via libelf) does not build on Windows. gresources are not embedded
+# within ELF binaries on that platform anyway and inspecting ELF binaries from
+# other platforms is not that useful so exclude the dependency in this case.
 # * Technically static-libs is needed on zlib, util-linux and perhaps more, but
 # these are used by GIO, which glib[static-libs] consumers don't really seem
 # to need at all, thus not imposing the deps for now and once some consumers
@@ -30,14 +33,15 @@ RDEPEND="
 	!<dev-util/gdbus-codegen-${PV}
 	>=virtual/libiconv-0-r1[${MULTILIB_USEDEP}]
 	>=dev-libs/libpcre-8.31:3[${MULTILIB_USEDEP},static-libs?]
-	>=virtual/libffi-3.0.13-r1:=[${MULTILIB_USEDEP}]
+	>=dev-libs/libffi-3.0.13-r1:=[${MULTILIB_USEDEP}]
 	>=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}]
 	>=virtual/libintl-0-r2[${MULTILIB_USEDEP}]
 	kernel_linux? ( >=sys-apps/util-linux-2.23[${MULTILIB_USEDEP}] )
 	selinux? ( >=sys-libs/libselinux-2.2.2-r5[${MULTILIB_USEDEP}] )
 	xattr? ( !elibc_glibc? ( >=sys-apps/attr-2.4.47-r1[${MULTILIB_USEDEP}] ) )
-	virtual/libelf:0=
+	!kernel_Winnt? ( virtual/libelf:0= )
 	fam? ( >=virtual/fam-0-r1[${MULTILIB_USEDEP}] )
+	sysprof? ( >=dev-util/sysprof-capture-3.38:4[${MULTILIB_USEDEP}] )
 "
 DEPEND="${RDEPEND}"
 # libxml2 used for optional tests that get automatically skipped
@@ -45,13 +49,13 @@ BDEPEND="
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxslt
 	>=sys-devel/gettext-0.19.8
-	gtk-doc? ( >=dev-util/gtk-doc-1.20
+	gtk-doc? ( >=dev-util/gtk-doc-1.33
 		app-text/docbook-xml-dtd:4.2
 		app-text/docbook-xml-dtd:4.5 )
 	systemtap? ( >=dev-util/systemtap-1.3 )
 	${PYTHON_DEPS}
 	test? ( >=sys-apps/dbus-1.2.14 )
-	virtual/pkgconfig[${MULTILIB_USEDEP}]
+	virtual/pkgconfig
 "
 # TODO: >=dev-util/gdbus-codegen-${PV} test dep once we modify gio/tests/meson.build to use external gdbus-codegen
 
@@ -64,6 +68,11 @@ PDEPEND="
 
 MULTILIB_CHOST_TOOLS=(
 	/usr/bin/gio-querymodules$(get_exeext)
+)
+
+PATCHES=(
+	"${FILESDIR}"/${PN}-2.64.1-mark-gdbus-server-auth-test-flaky.patch
+	"${FILESDIR}"/0001-gquark-fix-initialization-with-c-constructors.patch
 )
 
 pkg_setup() {
@@ -79,10 +88,6 @@ pkg_setup() {
 }
 
 src_prepare() {
-	# Musl fix
-	eapply "${FILESDIR}/2.56.2-quark_init_on_demand.patch"
-	eapply "${FILESDIR}/2.56.2-gobject_init_on_demand.patch"
-
 	if use test; then
 		# TODO: Review the test exclusions, especially now with meson
 		# Disable tests requiring dev-util/desktop-file-utils when not installed, bug #286629, upstream bug #629163
@@ -160,11 +165,12 @@ multilib_src_configure() {
 		-Ddefault_library=$(usex static-libs both shared)
 		$(meson_feature selinux)
 		$(meson_use xattr)
-		-Dlibmount=true # only used if host_system == 'linux'
+		-Dlibmount=enabled # only used if host_system == 'linux'
 		-Dinternal_pcre=false
 		-Dman=true
 		$(meson_use systemtap dtrace)
 		$(meson_use systemtap)
+		$(meson_feature sysprof)
 		-Dgtk_doc=$(multilib_native_usex gtk-doc true false)
 		$(meson_use fam)
 		-Dinstalled_tests=false
@@ -262,6 +268,13 @@ pkg_postinst() {
 		ewarn "your final image for performance reasons and re-run it when packages"
 		ewarn "installing GIO modules get upgraded or added to the image."
 	fi
+
+	for v in ${REPLACING_VERSIONS}; do
+		if ver_test "$v" "-lt" "2.63.6"; then
+			ewarn "glib no longer installs the gio-launch-desktop binary. You may need"
+			ewarn "to restart your session for \"Open With\" dialogs to work."
+		fi
+	done
 }
 
 pkg_postrm() {
