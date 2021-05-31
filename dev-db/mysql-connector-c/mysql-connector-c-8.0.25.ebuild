@@ -1,31 +1,39 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-inherit cmake-multilib
+CMAKE_ECLASS=cmake
+inherit cmake-multilib flag-o-matic
 
 # wrap the config script
 MULTILIB_CHOST_TOOLS=( /usr/bin/mysql_config )
 
 DESCRIPTION="C client library for MariaDB/MySQL"
 HOMEPAGE="https://dev.mysql.com/downloads/"
+
+if [[ ${PV} == "9999" ]]; then
+	EGIT_REPO_URI="https://github.com/mysql/mysql-server.git"
+
+	inherit git-r3
+else
+	SRC_URI="https://dev.mysql.com/get/Downloads/MySQL-$(ver_cut 1-2)/mysql-boost-${PV}.tar.gz"
+	KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc x86"
+
+	S="${WORKDIR}/mysql-${PV}"
+fi
+
 LICENSE="GPL-2"
-
-SRC_URI="https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-boost-${PV}.tar.gz"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
-
 SLOT="0/21"
-IUSE="ldap libressl static-libs"
+IUSE="ldap static-libs"
 
 RDEPEND="
 	>=app-arch/lz4-0_p131:=[${MULTILIB_USEDEP}]
 	app-arch/zstd:=[${MULTILIB_USEDEP}]
 	sys-libs/zlib:=[${MULTILIB_USEDEP}]
 	ldap? ( dev-libs/cyrus-sasl:=[${MULTILIB_USEDEP}] )
-	libressl? ( dev-libs/libressl:0=[${MULTILIB_USEDEP}] )
-	!libressl? ( dev-libs/openssl:0=[${MULTILIB_USEDEP}] )
-	"
+	dev-libs/openssl:0=[${MULTILIB_USEDEP}]
+"
 DEPEND="${RDEPEND}"
 
 # Avoid file collisions, #692580
@@ -39,17 +47,14 @@ RDEPEND+=" !<dev-db/percona-server-5.7.26.29-r1"
 
 DOCS=( README )
 
-S="${WORKDIR}/mysql-${PV}"
-
 PATCHES=(
 	"${FILESDIR}"/${PN}-8.0.22-always-build-decompress-utilities.patch
 	"${FILESDIR}"/${PN}-8.0.19-do-not-install-comp_err.patch
-	"${FILESDIR}"/${PN}-8.0.21-libressl.patch
 	"${FILESDIR}"/${PN}-8.0.22-musl-dns.patch
 )
 
 src_prepare() {
-	sed -i -e 's/CLIENT_LIBS/CONFIG_CLIENT_LIBS/' "${S}/scripts/CMakeLists.txt" || die
+	sed -i -e 's/CLIENT_LIBS/CONFIG_CLIENT_LIBS/' "scripts/CMakeLists.txt" || die
 
 	# All these are for the server only.
 	# Disable rpm call which would trigger sandbox, #692368
@@ -74,11 +79,18 @@ src_prepare() {
 		echo > libmysql/authentication_ldap/CMakeLists.txt || die
 	fi
 
-	cmake-utils_src_prepare
+	cmake_src_prepare
 }
 
 multilib_src_configure() {
+	CMAKE_BUILD_TYPE="RelWithDebInfo"
+
+	# code is not C++17 ready, bug #786402
+	append-cxxflags -std=c++14
+
 	local mycmakeargs=(
+		-DCMAKE_C_FLAGS_RELWITHDEBINFO=-DNDEBUG
+		-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-DNDEBUG
 		-DINSTALL_LAYOUT=RPM
 		-DINSTALL_LIBDIR=$(get_libdir)
 		-DWITH_DEFAULT_COMPILER_OPTIONS=OFF
@@ -94,11 +106,8 @@ multilib_src_configure() {
 		-DCMAKE_POSITION_INDEPENDENT_CODE=ON
 		-DWITHOUT_SERVER=ON
 	)
-	cmake-utils_src_configure
-}
 
-multilib_src_install() {
-	cmake-utils_src_install
+	cmake_src_configure
 }
 
 multilib_src_install_all() {
