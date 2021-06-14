@@ -1,0 +1,12 @@
+diff --git a/Source/Core/Core/MemoryWatcher.cpp b/Source/Core/Core/MemoryWatcher.cpp
+index 656ea6b..96af82f 100644
+--- a/Source/Core/Core/MemoryWatcher.cpp
++++ b/Source/Core/Core/MemoryWatcher.cpp
+@@ -5,6 +5,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <sstream>
++#include <cstring>
+ #include <unistd.h>
+ 
+ #include "Common/FileUtil.h"
