@@ -3,25 +3,26 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7..9} )
+PYTHON_COMPAT=( python3_{8..9} )
 PYTHON_REQ_USE="xml"
 
 inherit cmake flag-o-matic xdg toolchain-funcs python-single-r1
 
 DESCRIPTION="SVG based generic vector-drawing program"
 HOMEPAGE="https://inkscape.org/"
-SRC_URI="https://dev.gentoo.org/~zlogene/distfiles/${CATEGORY}/${PN}/${P}.tar.xz"
+SRC_URI="https://media.inkscape.org/dl/resources/file/${P}.tar.xz"
 
 LICENSE="GPL-2 LGPL-2.1"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
+KEYWORDS="amd64 ~arm ~arm64 ~hppa ~ia64 ppc ppc64 ~s390 ~sparc x86"
 IUSE="cdr dbus dia exif graphicsmagick imagemagick inkjar jemalloc jpeg lcms
 openmp postscript spell static-libs svg2 visio wpg"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 PATCHES=(
-	"${FILESDIR}/fix-Werror.patch"
+	"${FILESDIR}/${P}_fix-Werror.patch"
+	"${FILESDIR}/fix-poppler-21.11.0.patch"
 )
 
 BDEPEND="
@@ -54,8 +55,8 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	>=x11-libs/pango-1.37.2
 	x11-libs/gtk+:3
 	$(python_gen_cond_dep '
-		dev-python/lxml[${PYTHON_MULTI_USEDEP}]
-		media-gfx/scour[${PYTHON_MULTI_USEDEP}]
+		dev-python/lxml[${PYTHON_USEDEP}]
+		media-gfx/scour[${PYTHON_USEDEP}]
 	')
 	cdr? (
 		app-text/libwpg:0.3
@@ -91,7 +92,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 # on that.
 RDEPEND="${COMMON_DEPEND}
 	$(python_gen_cond_dep '
-		dev-python/numpy[${PYTHON_MULTI_USEDEP}]
+		dev-python/numpy[${PYTHON_USEDEP}]
 	')
 	dia? ( app-office/dia )
 	postscript? ( app-text/ghostscript-gpl )
@@ -102,7 +103,7 @@ DEPEND="${COMMON_DEPEND}
 
 RESTRICT="test"
 
-S="${WORKDIR}"/${P}_2021-01-15_e86c870879
+S="${WORKDIR}"/${P}_2021-05-24_c4e8f9ed74
 
 pkg_pretend() {
 	if [[ ${MERGE_TYPE} != binary ]] && use openmp; then
