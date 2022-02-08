@@ -17,7 +17,7 @@ if [[ ${PV} == 9999 ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://archive.mesa3d.org/${MY_P}.tar.xz"
-	KEYWORDS="amd64 arm arm64 ~mips ppc ppc64 x86"
+	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 ~riscv ~s390 sparc x86 ~amd64-linux ~x86-linux ~sparc-solaris ~x64-solaris ~x86-solaris"
 fi
 
 LICENSE="MIT"
@@ -33,15 +33,18 @@ for card in ${VIDEO_CARDS}; do
 done
 
 IUSE="${IUSE_VIDEO_CARDS}
-	+classic cpu_flags_x86_sse2 d3d9 debug +gallium gles1 +gles2 +llvm
+	+classic cpu_flags_x86_sse2 d3d9 debug +egl +gallium +gbm gles1 +gles2 +llvm
 	lm-sensors opencl osmesa selinux test unwind vaapi valgrind vdpau vulkan
 	vulkan-overlay wayland +X xa xvmc zink +zstd"
 
 REQUIRED_USE="
 	d3d9?   ( || ( video_cards_iris video_cards_r300 video_cards_r600 video_cards_radeonsi video_cards_nouveau video_cards_vmware ) )
+	gles1?  ( egl )
+	gles2?  ( egl )
 	osmesa? ( gallium )
 	vulkan? ( video_cards_radeonsi? ( llvm ) )
 	vulkan-overlay? ( vulkan )
+	wayland? ( egl gbm )
 	video_cards_crocus? ( gallium )
 	video_cards_freedreno?  ( gallium )
 	video_cards_intel?  ( classic )
@@ -61,7 +64,7 @@ REQUIRED_USE="
 	video_cards_v3d? ( gallium )
 	video_cards_vc4? ( gallium )
 	video_cards_virgl? ( gallium )
-	video_cards_vivante? ( gallium )
+	video_cards_vivante? ( gallium gbm )
 	video_cards_vmware? ( gallium )
 	xa? ( X )
 	xvmc? ( X )
@@ -238,7 +241,9 @@ x86? (
 )"
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-21.1.4-add-disable-tls-support.patch
+	"${FILESDIR}"/mesa-tls.patch
+	"${FILESDIR}"/mesa-tls-2.patch
+	"${FILESDIR}"/mesa-tls-3-fix-non-initial-exec.patch
 )
 
 llvm_check_deps() {
@@ -385,9 +390,10 @@ multilib_src_configure() {
 	use wayland && platforms+=",wayland"
 	emesonargs+=(-Dplatforms=${platforms#,})
 
-	# Disable glx tls support on musl
-	if use elibc_musl; then
-		emesonargs+=( -Duse-elf-tls=false )
+	if use X || use egl; then
+		emesonargs+=(-Dglvnd=true)
+	else
+		emesonargs+=(-Dglvnd=false)
 	fi
 
 	if use gallium; then
@@ -512,9 +518,8 @@ multilib_src_configure() {
 		-Dglx=$(usex X dri disabled)
 		-Dshared-glapi=enabled
 		-Ddri3=enabled
-		-Degl=true
-		-Dgbm=true
-		-Dglvnd=true
+		$(meson_feature egl)
+		$(meson_feature gbm)
 		$(meson_feature gles1)
 		$(meson_feature gles2)
 		$(meson_use osmesa)
