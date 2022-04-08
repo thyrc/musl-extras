@@ -1,9 +1,9 @@
 # Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
-PYTHON_COMPAT=( python3_{7..10} )
+PYTHON_COMPAT=( python3_{8..10} )
 
 inherit bash-completion-r1 check-reqs estack flag-o-matic llvm multiprocessing \
 	multilib multilib-build python-any-r1 rust-toolchain toolchain-funcs verify-sig
@@ -41,7 +41,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/(-)?}
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-IUSE="clippy cpu_flags_x86_sse2 debug doc miri nightly parallel-compiler rls rustfmt rust-src system-bootstrap system-llvm test wasm ${ALL_LLVM_TARGETS[*]}"
+IUSE="clippy cpu_flags_x86_sse2 debug dist doc miri nightly parallel-compiler rls rustfmt rust-src system-bootstrap system-llvm test wasm ${ALL_LLVM_TARGETS[*]}"
 
 # Please keep the LLVM dependency block separate. Since LLVM is slotted,
 # we need to *really* make sure we're not pulling more than one slot
@@ -49,7 +49,7 @@ IUSE="clippy cpu_flags_x86_sse2 debug doc miri nightly parallel-compiler rls rus
 
 # How to use it:
 # List all the working slots in LLVM_VALID_SLOTS, newest first.
-LLVM_VALID_SLOTS=( 13 )
+LLVM_VALID_SLOTS=( 14 )
 LLVM_MAX_SLOT="${LLVM_VALID_SLOTS[0]}"
 
 # splitting usedeps needed to avoid CI/pkgcheck's UncheckableDep limitation
@@ -109,11 +109,9 @@ DEPEND="
 	system-llvm? ( ${LLVM_DEPEND} )
 "
 
-# we need to block older versions due to layout changes.
 RDEPEND="${DEPEND}
 	app-eselect/eselect-rust
-	!<dev-lang/rust-1.47.0-r1
-	!<dev-lang/rust-bin-1.47.0-r1
+	sys-apps/lsb-release
 "
 
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
@@ -142,8 +140,9 @@ QA_SONAME="
 "
 
 QA_PRESTRIPPED="
-	usr/lib/rust/${PV}/lib/rustlib/.*/bin/rust-llvm-dwp
+	usr/lib/${PN}/${PV}/lib/rustlib/.*/bin/rust-llvm-dwp
 "
+
 # An rmeta file is custom binary format that contains the metadata for the crate.
 # rmeta files do not support linking, since they do not contain compiled object files.
 # so we can safely silence the warning for this QA check.
@@ -314,6 +313,14 @@ src_configure() {
 		targets = "${LLVM_TARGETS// /;}"
 		experimental-targets = ""
 		link-shared = $(toml_usex system-llvm)
+		$(case "${rust_target}" in
+			i586-*-linux-*)
+				# https://github.com/rust-lang/rust/issues/93059
+				echo 'cflags = "-fcf-protection=none"'
+				echo 'cxxflags = "-fcf-protection=none"'
+				echo 'ldflags = "-fcf-protection=none"'
+				;;
+		esac)
 		[build]
 		build-stage = 2
 		test-stage = 2
@@ -376,7 +383,7 @@ src_configure() {
 		jemalloc = false
 		[dist]
 		src-tarball = false
-		compression-formats = ["gz"]
+		compression-formats = ["xz"]
 	_EOF_
 
 	for v in $(multilib_get_enabled_abi_pairs); do
@@ -667,6 +674,11 @@ src_install() {
 
 	insinto /etc/env.d/rust
 	doins "${T}/provider-${P}"
+
+	if use dist; then
+		insinto "/usr/lib/${PN}/${PV}/dist"
+		doins -r "${S}/build/dist/."
+	fi
 }
 
 pkg_postinst() {
