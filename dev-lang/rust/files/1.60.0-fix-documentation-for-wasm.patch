@@ -1,0 +1,137 @@
+diff --git a/library/std/src/os/fd/owned.rs b/library/std/src/os/fd/owned.rs
+index 71c660e71..2c0892ca8 100644
+--- a/library/std/src/os/fd/owned.rs
++++ b/library/std/src/os/fd/owned.rs
+@@ -8,7 +8,7 @@ use crate::fmt;
+ use crate::fs;
+ use crate::marker::PhantomData;
+ use crate::mem::forget;
+-#[cfg(not(target_os = "wasi"))]
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sys::cvt;
+ use crate::sys_common::{AsInner, FromInner, IntoInner};
+ 
+@@ -65,14 +65,19 @@ impl BorrowedFd<'_> {
+     pub unsafe fn borrow_raw_fd(fd: RawFd) -> Self {
+         assert_ne!(fd, u32::MAX as RawFd);
+         // SAFETY: we just asserted that the value is in the valid range and isn't `-1` (the only value bigger than `0xFF_FF_FF_FE` unsigned)
+-        unsafe { Self { fd, _phantom: PhantomData } }
++        unsafe {
++            Self {
++                fd,
++                _phantom: PhantomData,
++            }
++        }
+     }
+ }
+ 
+ impl OwnedFd {
+     /// Creates a new `OwnedFd` instance that shares the same underlying file handle
+     /// as the existing `OwnedFd` instance.
+-    #[cfg(not(target_os = "wasi"))]
++    #[cfg(not(target_arch = "wasm32"))]
+     pub fn try_clone(&self) -> crate::io::Result<Self> {
+         // We want to atomically duplicate this file descriptor and set the
+         // CLOEXEC flag, and currently that's done via F_DUPFD_CLOEXEC. This
+@@ -91,7 +96,7 @@ impl OwnedFd {
+         Ok(unsafe { Self::from_raw_fd(fd) })
+     }
+ 
+-    #[cfg(target_os = "wasi")]
++    #[cfg(target_arch = "wasm32")]
+     pub fn try_clone(&self) -> crate::io::Result<Self> {
+         Err(crate::io::const_io_error!(
+             crate::io::ErrorKind::Unsupported,
+@@ -271,7 +276,12 @@ impl AsFd for crate::net::TcpStream {
+ impl From<crate::net::TcpStream> for OwnedFd {
+     #[inline]
+     fn from(tcp_stream: crate::net::TcpStream) -> OwnedFd {
+-        tcp_stream.into_inner().into_socket().into_inner().into_inner().into()
++        tcp_stream
++            .into_inner()
++            .into_socket()
++            .into_inner()
++            .into_inner()
++            .into()
+     }
+ }
+ 
+@@ -279,9 +289,9 @@ impl From<crate::net::TcpStream> for OwnedFd {
+ impl From<OwnedFd> for crate::net::TcpStream {
+     #[inline]
+     fn from(owned_fd: OwnedFd) -> Self {
+-        Self::from_inner(FromInner::from_inner(FromInner::from_inner(FromInner::from_inner(
+-            owned_fd,
+-        ))))
++        Self::from_inner(FromInner::from_inner(FromInner::from_inner(
++            FromInner::from_inner(owned_fd),
++        )))
+     }
+ }
+ 
+@@ -297,7 +307,12 @@ impl AsFd for crate::net::TcpListener {
+ impl From<crate::net::TcpListener> for OwnedFd {
+     #[inline]
+     fn from(tcp_listener: crate::net::TcpListener) -> OwnedFd {
+-        tcp_listener.into_inner().into_socket().into_inner().into_inner().into()
++        tcp_listener
++            .into_inner()
++            .into_socket()
++            .into_inner()
++            .into_inner()
++            .into()
+     }
+ }
+ 
+@@ -305,9 +320,9 @@ impl From<crate::net::TcpListener> for OwnedFd {
+ impl From<OwnedFd> for crate::net::TcpListener {
+     #[inline]
+     fn from(owned_fd: OwnedFd) -> Self {
+-        Self::from_inner(FromInner::from_inner(FromInner::from_inner(FromInner::from_inner(
+-            owned_fd,
+-        ))))
++        Self::from_inner(FromInner::from_inner(FromInner::from_inner(
++            FromInner::from_inner(owned_fd),
++        )))
+     }
+ }
+ 
+@@ -323,7 +338,12 @@ impl AsFd for crate::net::UdpSocket {
+ impl From<crate::net::UdpSocket> for OwnedFd {
+     #[inline]
+     fn from(udp_socket: crate::net::UdpSocket) -> OwnedFd {
+-        udp_socket.into_inner().into_socket().into_inner().into_inner().into()
++        udp_socket
++            .into_inner()
++            .into_socket()
++            .into_inner()
++            .into_inner()
++            .into()
+     }
+ }
+ 
+@@ -331,8 +351,8 @@ impl From<crate::net::UdpSocket> for OwnedFd {
+ impl From<OwnedFd> for crate::net::UdpSocket {
+     #[inline]
+     fn from(owned_fd: OwnedFd) -> Self {
+-        Self::from_inner(FromInner::from_inner(FromInner::from_inner(FromInner::from_inner(
+-            owned_fd,
+-        ))))
++        Self::from_inner(FromInner::from_inner(FromInner::from_inner(
++            FromInner::from_inner(owned_fd),
++        )))
+     }
+ }
+diff --git a/library/std/src/os/fd/raw.rs b/library/std/src/os/fd/raw.rs
+index f874cf0b4..c89d2db06 100644
+--- a/library/std/src/os/fd/raw.rs
++++ b/library/std/src/os/fd/raw.rs
+@@ -5,6 +5,8 @@
+ use crate::fs;
+ use crate::io;
+ use crate::os::raw;
++#[cfg(all(doc, not(target_arch = "wasm32")))]
++use crate::os::unix::io::AsFd;
+ #[cfg(unix)]
+ use crate::os::unix::io::OwnedFd;
+ #[cfg(target_os = "wasi")]
