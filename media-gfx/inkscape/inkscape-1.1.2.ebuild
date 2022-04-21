@@ -1,28 +1,30 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
-PYTHON_COMPAT=( python3_{8..9} )
+PYTHON_COMPAT=( python3_{8..10} )
 PYTHON_REQ_USE="xml"
-
+MY_P="${P/_/}"
 inherit cmake flag-o-matic xdg toolchain-funcs python-single-r1
+
+if [[ ${PV} = 9999* ]]; then
+	inherit git-r3
+	EGIT_REPO_URI="https://gitlab.com/inkscape/inkscape.git"
+else
+	SRC_URI="https://media.inkscape.org/dl/resources/file/${P}.tar.xz"
+	KEYWORDS="~alpha amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~riscv ~s390 ~sparc x86"
+fi
 
 DESCRIPTION="SVG based generic vector-drawing program"
 HOMEPAGE="https://inkscape.org/"
-SRC_URI="https://media.inkscape.org/dl/resources/file/${P}.tar.xz"
 
 LICENSE="GPL-2 LGPL-2.1"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 ~hppa ~ia64 ppc ppc64 ~s390 ~sparc x86"
-IUSE="cdr dbus dia exif graphicsmagick imagemagick inkjar jemalloc jpeg lcms
-openmp postscript spell static-libs svg2 visio wpg"
+IUSE="cdr dbus dia exif graphicsmagick imagemagick inkjar jemalloc jpeg
+openmp postscript readline spell svg2 test visio wpg"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
-
-PATCHES=(
-	"${FILESDIR}/${P}_fix-Werror.patch"
-)
 
 BDEPEND="
 	dev-util/glib-utils
@@ -37,6 +39,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dev-cpp/gtkmm:3.0
 	>=dev-cpp/pangomm-2.40:1.4
 	>=dev-libs/boehm-gc-7.1:=
+	>=dev-libs/boost-1.65:=
 	dev-libs/double-conversion:=
 	>=dev-libs/glib-2.41
 	>=dev-libs/libsigc++-2.8:2
@@ -47,8 +50,9 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	media-gfx/potrace
 	media-libs/fontconfig
 	media-libs/freetype:2
+	media-libs/lcms:2
 	media-libs/libpng:0=
-	net-libs/libsoup
+	net-libs/libsoup:2.4
 	sci-libs/gsl:=
 	x11-libs/libX11
 	>=x11-libs/pango-1.37.2
@@ -70,11 +74,8 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	)
 	jemalloc? ( dev-libs/jemalloc )
 	jpeg? ( virtual/jpeg:0 )
-	lcms? ( media-libs/lcms:2 )
-	spell? (
-		app-text/aspell
-		app-text/gtkspell:3
-	)
+	readline? ( sys-libs/readline:= )
+	spell? ( app-text/gspell )
 	visio? (
 		app-text/libwpg:0.3
 		dev-libs/librevenge
@@ -97,17 +98,31 @@ RDEPEND="${COMMON_DEPEND}
 	postscript? ( app-text/ghostscript-gpl )
 "
 DEPEND="${COMMON_DEPEND}
-	>=dev-libs/boost-1.65
+	test? ( dev-cpp/gtest )
 "
 
-RESTRICT="test"
+RESTRICT="!test? ( test )"
 
-S="${WORKDIR}"/${P}_2021-05-24_c4e8f9ed74
+S="${WORKDIR}/${MY_P}"
+
+PATCHES=(
+	"${FILESDIR}/${PN}-1.1_fix-Werror.patch"
+	"${FILESDIR}/${PN}-1.1.2-poppler-22.03.0.patch"  # bug 835424
+)
 
 pkg_pretend() {
 	if [[ ${MERGE_TYPE} != binary ]] && use openmp; then
 		tc-has-openmp || die "Please switch to an openmp compatible compiler"
 	fi
+}
+
+src_unpack() {
+	if [[ ${PV} = 9999* ]]; then
+		git-r3_src_unpack
+	else
+		default
+	fi
+	[[ -d "${S}" ]] || mv -v "${WORKDIR}/${P}_202"?-??-* "${S}" || die
 }
 
 src_prepare() {
@@ -121,24 +136,32 @@ src_configure() {
 
 	local mycmakeargs=(
 		# -DWITH_LPETOOL   # Compile with LPE Tool and experimental LPEs enabled
-		-DENABLE_POPPLER=ON
 		-DWITH_NLS=ON
+		-DENABLE_POPPLER=ON
 		-DENABLE_POPPLER_CAIRO=ON
 		-DWITH_PROFILING=OFF
+		-DWITH_INTERNAL_2GEOM=ON
+		-DBUILD_TESTING=$(usex test)
 		-DWITH_LIBCDR=$(usex cdr)
 		-DWITH_DBUS=$(usex dbus)
 		-DWITH_IMAGE_MAGICK=$(usex imagemagick $(usex !graphicsmagick)) # requires ImageMagick 6, only IM must be enabled
 		-DWITH_GRAPHICS_MAGICK=$(usex graphicsmagick $(usex imagemagick)) # both must be enabled to use GraphicsMagick
+		-DWITH_GNU_READLINE=$(usex readline)
+		-DWITH_GSPELL=$(usex spell)
 		-DWITH_JEMALLOC=$(usex jemalloc)
-		-DENABLE_LCMS=$(usex lcms)
+		-DENABLE_LCMS=ON
 		-DWITH_OPENMP=$(usex openmp)
-		-DBUILD_SHARED_LIBS=$(usex !static-libs)
+		-DBUILD_SHARED_LIBS=ON
 		-DWITH_SVG2=$(usex svg2)
 		-DWITH_LIBVISIO=$(usex visio)
 		-DWITH_LIBWPG=$(usex wpg)
 	)
 
 	cmake_src_configure
+}
+
+src_test() {
+	cmake_build -j1 check
 }
 
 src_install() {
