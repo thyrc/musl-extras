@@ -1,12 +1,12 @@
 # Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=8
 
 PLOCALES="ar ast bg ca cs da de el en en_US eo es fa fi fr he hi hr hu it ja ko lt ml nb_NO nl or pa pl pt_BR pt_PT rm ro ru si sk sl sr_RS@cyrillic sr_RS@latin sv ta te th tr uk wa zh_CN zh_TW"
 PLOCALE_BACKUP="en"
 
-inherit autotools eapi7-ver estack eutils flag-o-matic gnome2-utils multilib multilib-minimal pax-utils plocale toolchain-funcs virtualx xdg-utils
+inherit autotools estack flag-o-matic multilib-minimal pax-utils plocale toolchain-funcs virtualx wrapper xdg-utils
 
 MY_PN="${PN%%-*}"
 MY_P="${MY_PN}-${PV}"
@@ -19,8 +19,8 @@ if [[ ${PV} == "9999" ]] ; then
 	#KEYWORDS=""
 else
 	MAJOR_V=$(ver_cut 1)
-	SRC_URI="https://dl.winehq.org/wine/source/${MAJOR_V}.0/${MY_P}.tar.xz"
-	KEYWORDS="-* amd64 x86"
+	SRC_URI="https://dl.winehq.org/wine/source/${MAJOR_V}.x/${MY_P}.tar.xz"
+	KEYWORDS="-* ~amd64 ~x86"
 fi
 S="${WORKDIR}/${MY_P}"
 
@@ -35,17 +35,22 @@ SRC_URI="${SRC_URI}
 
 LICENSE="LGPL-2.1"
 SLOT="${PV}"
-IUSE="+abi_x86_32 +abi_x86_64 +alsa capi cups custom-cflags dos +fontconfig +gecko gphoto2 gssapi gstreamer kerberos ldap mingw +mono mp3 netapi nls odbc openal opencl +opengl osmesa oss +perl pcap pulseaudio +realtime +run-exes samba scanner sdl selinux +ssl test +threads +truetype udev +udisks +unwind usb v4l vkd3d vulkan +X +xcomposite xinerama"
+IUSE="+abi_x86_32 +abi_x86_64 +alsa capi crossdev-mingw cups custom-cflags dos +fontconfig +gecko gphoto2 gssapi gstreamer kerberos ldap mingw +mono mp3 netapi nls odbc openal opencl +opengl osmesa oss +perl pcap pulseaudio +realtime +run-exes samba scanner sdl selinux +ssl test +threads +truetype udev +udisks +unwind usb v4l vulkan +X +xcomposite xinerama"
 REQUIRED_USE="|| ( abi_x86_32 abi_x86_64 )
 	X? ( truetype )
+	crossdev-mingw? ( mingw )
 	elibc_glibc? ( threads )
 	osmesa? ( opengl )
-	test? ( abi_x86_32 )
-	vkd3d? ( vulkan )" # osmesa-opengl #286560 # X-truetype #551124
+	test? ( abi_x86_32 )" # osmesa-opengl #286560 # X-truetype #551124
 
 # FIXME: the test suite is unsuitable for us; many tests require net access
 # or fail due to Xvfb's opengl limitations.
 RESTRICT="test"
+
+BDEPEND="sys-devel/flex
+	virtual/yacc
+	virtual/pkgconfig
+	mingw? ( !crossdev-mingw? ( dev-util/mingw64-toolchain[${MULTILIB_USEDEP}] ) )"
 
 COMMON_DEPEND="
 	X? (
@@ -62,7 +67,7 @@ COMMON_DEPEND="
 	fontconfig? ( media-libs/fontconfig:=[${MULTILIB_USEDEP}] )
 	gphoto2? (
 		media-libs/libgphoto2:=[${MULTILIB_USEDEP}]
-		virtual/jpeg:0=[${MULTILIB_USEDEP}]
+		media-libs/libjpeg-turbo:0=[${MULTILIB_USEDEP}]
 	)
 	gssapi? ( virtual/krb5[${MULTILIB_USEDEP}] )
 	gstreamer? (
@@ -91,7 +96,6 @@ COMMON_DEPEND="
 	unwind? ( sys-libs/libunwind[${MULTILIB_USEDEP}] )
 	usb? ( virtual/libusb:1[${MULTILIB_USEDEP}]  )
 	v4l? ( media-libs/libv4l[${MULTILIB_USEDEP}] )
-	vkd3d? ( >=app-emulation/vkd3d-1.2[${MULTILIB_USEDEP}] )
 	vulkan? ( media-libs/vulkan-loader[${MULTILIB_USEDEP}] )
 	xcomposite? ( x11-libs/libXcomposite[${MULTILIB_USEDEP}] )
 	xinerama? ( x11-libs/libXinerama[${MULTILIB_USEDEP}] )"
@@ -99,10 +103,9 @@ COMMON_DEPEND="
 RDEPEND="${COMMON_DEPEND}
 	app-emulation/wine-desktop-common
 	>app-eselect/eselect-wine-0.3
-	!app-emulation/wine:0
 	dos? ( >=games-emulation/dosbox-0.74_p20160629 )
 	gecko? ( app-emulation/wine-gecko:2.47.2[abi_x86_32?,abi_x86_64?] )
-	mono? ( app-emulation/wine-mono:7.0.0 )
+	mono? ( app-emulation/wine-mono:7.3.0 )
 	perl? (
 		dev-lang/perl
 		dev-perl/XML-Simple
@@ -116,10 +119,8 @@ RDEPEND="${COMMON_DEPEND}
 
 # tools/make_requests requires perl
 DEPEND="${COMMON_DEPEND}
-	sys-devel/flex
+	${BDEPEND}
 	>=sys-kernel/linux-headers-2.6
-	virtual/pkgconfig
-	virtual/yacc
 	X? ( x11-base/xorg-proto )
 	xinerama? ( x11-base/xorg-proto )"
 
@@ -144,79 +145,13 @@ if [[ ${#PATCHES_BIN[@]} -ge 1 ]] || [[ ${PV} == 9999 ]]; then
 fi
 
 wine_compiler_check() {
-	# GCC-specific bugs
-	if tc-is-gcc; then
-		# bug #549768
-		if use abi_x86_64 && [[ $(gcc-major-version) = 5 && $(gcc-minor-version) -le 2 ]]; then
-			ebegin "Checking for gcc-5 ms_abi compiler bug"
-			$(tc-getCC) -O2 "${PATCHDIR}/files/pr66838.c" -o "${T}"/pr66838 || die
-			# Run in subshell to prevent "Aborted" message
-			( "${T}"/pr66838 || false ) >/dev/null 2>&1
-			if ! eend $?; then
-				eerror "64-bit wine cannot be built with gcc-5.1 or initial patchset of 5.2.0"
-				eerror "due to compiler bugs; please re-emerge the latest gcc-5.2.x ebuild,"
-				eerror "or use gcc-config to select a different compiler version."
-				eerror "See https://bugs.gentoo.org/549768"
-				eerror
-				return 1
-			fi
-		fi
-		# bug #574044
-		if use abi_x86_64 && [[ $(gcc-major-version) = 5 && $(gcc-minor-version) = 3 ]]; then
-			ebegin "Checking for gcc-5-3 stack realignment compiler bug"
-			# Compile in subshell to prevent "Aborted" message
-			( $(tc-getCC) -O2 -mincoming-stack-boundary=3 "${PATCHDIR}/files/pr69140.c" -o "${T}"/pr69140 ) >/dev/null 2>&1
-			if ! eend $?; then
-				eerror "Wine cannot be built with this version of gcc-5.3"
-				eerror "due to compiler bugs; please re-emerge the latest gcc-5.3.x ebuild,"
-				eerror "or use gcc-config to select a different compiler version."
-				eerror "See https://bugs.gentoo.org/574044"
-				eerror
-				return 1
-			fi
-		fi
-	fi
-
 	# Ensure compiler support
-	if use abi_x86_64; then
-		ebegin "Checking for 64-bit compiler with builtin_ms_va_list support"
-		# Compile in subshell to prevent "Aborted" message
-		( $(tc-getCC) -O2 "${PATCHDIR}/files/builtin_ms_va_list.c" -o "${T}"/builtin_ms_va_list >/dev/null 2>&1)
-		if ! eend $?; then
-			eerror "This version of $(tc-getCC) does not support builtin_ms_va_list, can't enable 64-bit wine"
-			eerror
-			eerror "You need gcc-4.4+ or clang 3.8+ to build 64-bit wine"
-			eerror
-			return 1
-		fi
-	fi
+	# (No checks here as of 2022)
+	return 0
 }
 
 wine_build_environment_check() {
 	[[ ${MERGE_TYPE} = "binary" ]] && return 0
-
-	if use abi_x86_64; then
-		if tc-is-gcc && [[ $(gcc-major-version) -lt 4 || ( $(gcc-major-version) -eq 4 && $(gcc-minor-version) -lt 4 ) ]]; then
-			eerror "You need gcc-4.4+ to compile 64-bit wine"
-			die
-		elif tc-is-clang && [[ $(clang-major-version) -lt 3 || ( $(clang-major-version) -eq 3 && $(clang-minor-version) -lt 8 ) ]]; then
-			eerror "You need clang-3.8+ to compile 64-bit wine"
-			die
-		fi
-	fi
-	if tc-is-gcc && [[ $(gcc-major-version) -eq 5 && $(gcc-minor-version) -le 3 ]]; then
-		ewarn "GCC-5.0-5.3 suffered from compiler bugs and are no longer supported by"
-		ewarn "Gentoo's Toolchain Team. If your ebuild fails the compiler checks in"
-		ewarn "the configure phase, either update your compiler or switch to <5.0 || >=5.4"
-	fi
-	if tc-is-gcc && [[ $(gcc-major-version) -eq 5 && $(gcc-minor-version) -eq 4 ]]; then
-		if has "-march=i686" ${CFLAGS} && ! has "-mtune=generic" ${CFLAGS}; then
-			ewarn "Compilation can hang with CFLAGS=\"-march=i686\".  You can temporarily work"
-			ewarn "around this by adding \"-mtune=generic\" to your CFLAGS for wine."
-			ewarn "See package.env in man 5 portage for more information on how to do this."
-			ewarn "See https://bugs.gentoo.org/show_bug.cgi?id=613128 for more details"
-		fi
-	fi
 
 	if use abi_x86_32 && use opencl && [[ "$(eselect opencl show 2> /dev/null)" == "intel" ]]; then
 		eerror "You cannot build wine with USE=opencl because intel-ocl-sdk is 64-bit only."
@@ -244,39 +179,25 @@ pkg_pretend() {
 	# Verify OSS support
 	if use oss; then
 		if ! has_version ">=media-sound/oss-4"; then
-			eerror "You cannot build wine with USE=oss without having support from a"
-			eerror "FreeBSD kernel or >=media-sound/oss-4 (only available through external repos)"
+			eerror "You cannot build wine with USE=oss without having support from"
+			eerror ">=media-sound/oss-4 (only available through external repos)"
 			eerror
 			die
 		fi
 	fi
 
-	if use mingw && use abi_x86_32 && ! has_version "cross-i686-w64-mingw32/gcc"; then
-		eerror
-		eerror "USE=\"mingw\" is currently experimental, and requires the"
-		eerror "'cross-i686-w64-mingw32' compiler and its runtime for 32-bit builds."
-		eerror
-		eerror "These can be installed by using 'sys-devel/crossdev':"
-		eerror
-		eerror "crossdev --target i686-w64-mingw32"
-		eerror
-		eerror "For more information on setting up MinGW, see: https://wiki.gentoo.org/wiki/Mingw"
-		eerror
-		die "MinGW build was enabled, but no compiler to support it was found."
-	fi
-
-	if use mingw && use abi_x86_64 && ! has_version "cross-x86_64-w64-mingw32/gcc"; then
-		eerror
-		eerror "USE=\"mingw\" is currently experimental, and requires the"
-		eerror "'cross-x86_64-w64-mingw32' compiler and its runtime for 64-bit builds."
-		eerror
-		eerror "These can be installed by using 'sys-devel/crossdev':"
-		eerror
-		eerror "crossdev --target x86_64-w64-mingw32"
-		eerror
-		eerror "For more information on setting up MinGW, see: https://wiki.gentoo.org/wiki/Mingw"
-		eerror
-		die "MinGW build was enabled, but no compiler to support it was found."
+	if use crossdev-mingw && [[ ! -v MINGW_BYPASS ]]; then
+		local mingw=-w64-mingw32
+		for mingw in $(usev abi_x86_64 x86_64${mingw}) $(usev abi_x86_32 i686${mingw}); do
+			type -P ${mingw}-gcc && continue
+			eerror "With USE=crossdev-mingw, you must prepare the MinGW toolchain"
+			eerror "yourself by installing sys-devel/crossdev then running:"
+			eerror
+			eerror "    crossdev --target ${mingw}"
+			eerror
+			eerror "For more information, please see: https://wiki.gentoo.org/wiki/Mingw"
+			die "USE=crossdev-mingw is enabled, but ${mingw}-gcc was not found"
+		done
 	fi
 }
 
@@ -372,7 +293,13 @@ src_configure() {
 	export LDCONFIG=/bin/true
 	use custom-cflags || strip-flags
 	if use mingw; then
-		export CROSSCFLAGS="${CFLAGS}"
+		use crossdev-mingw || PATH="${BROOT}/usr/lib/mingw64-toolchain/bin:${PATH}"
+
+		# use *FLAGS for mingw, but strip unsupported (e.g. --hash-style=gnu)
+		local mingwcc=${CROSSCC:-$(usex x86 i686 x86_64)-w64-mingw32-gcc}
+		: "${CROSSCFLAGS:=$(CC=${mingwcc} test-flags-CC ${CFLAGS:--O2})}"
+		: "${CROSSLDFLAGS:=$(CC=${mingwcc} test-flags-CCLD ${LDFLAGS})}"
+		export CROSS{C,LD}FLAGS
 	fi
 
 	multilib-minimal_src_configure
@@ -400,6 +327,7 @@ multilib_src_configure() {
 		$(use_with gphoto2 gphoto)
 		$(use_with gssapi)
 		$(use_with gstreamer)
+		--enable-hal
 		$(use_with kerberos krb5)
 		$(use_with ldap)
 		# TODO: Will bug 685172 still need special handling?
@@ -423,7 +351,6 @@ multilib_src_configure() {
 		$(use_with unwind)
 		$(use_with usb)
 		$(use_with v4l v4l2)
-		$(use_with vkd3d)
 		$(use_with vulkan)
 		$(use_with X x)
 		$(use_with X xfixes)
@@ -477,12 +404,12 @@ multilib_src_install_all() {
 	find "${ED}" -name *.la -delete || die
 
 	if ! use perl ; then # winedump calls function_grep.pl, and winemaker is a perl script
-		rm "${D%/}${MY_PREFIX}"/bin/{wine{dump,maker},function_grep.pl} \
-			"${D%/}${MY_MANDIR}"/man1/wine{dump,maker}.1 || die
+		rm "${D%}${MY_PREFIX}"/bin/{wine{dump,maker},function_grep.pl} \
+			"${D%}${MY_MANDIR}"/man1/wine{dump,maker}.1 || die
 	fi
 
-	use abi_x86_32 && pax-mark psmr "${D%/}${MY_PREFIX}"/bin/wine{,-preloader} #255055
-	use abi_x86_64 && pax-mark psmr "${D%/}${MY_PREFIX}"/bin/wine64{,-preloader}
+	use abi_x86_32 && pax-mark psmr "${D%}${MY_PREFIX}"/bin/wine{,-preloader} #255055
+	use abi_x86_64 && pax-mark psmr "${D%}${MY_PREFIX}"/bin/wine64{,-preloader}
 
 	# Avoid double prefix from dosym and make_wrapper
 	MY_PREFIX=${MY_PREFIX#${EPREFIX}}
@@ -497,7 +424,7 @@ multilib_src_install_all() {
 	# Make wrappers for binaries for handling multiple variants
 	# Note: wrappers instead of symlinks because some are shell which use basename
 	local b
-	for b in "${ED%/}${MY_PREFIX}"/bin/*; do
+	for b in "${ED%}${MY_PREFIX}"/bin/*; do
 		make_wrapper "${b##*/}-${WINE_VARIANT}" "${MY_PREFIX}/bin/${b##*/}"
 	done
 	eshopts_pop
