@@ -3,8 +3,8 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{8..10} )
-PYTHON_REQ_USE="threads(+),xml"
+PYTHON_COMPAT=( python3_{8..11} )
+PYTHON_REQ_USE="threads(+),xml(+)"
 
 MY_PV="${PV/_alpha/.alpha}"
 MY_PV="${MY_PV/_beta/.beta}"
@@ -18,7 +18,7 @@ DEV_URI="
 ADDONS_URI="https://dev-www.libreoffice.org/src/"
 
 BRANDING="${PN}-branding-gentoo-0.8.tar.xz"
-# PATCHSET="${P}-patchset-01.tar.xz"
+PATCHSET="${PN}-7.3.5.2-patchset-01.tar.xz"
 
 [[ ${MY_PV} == *9999* ]] && inherit git-r3
 inherit autotools bash-completion-r1 check-reqs flag-o-matic java-pkg-opt-2 multiprocessing python-single-r1 qmake-utils toolchain-funcs xdg-utils
@@ -26,7 +26,7 @@ inherit autotools bash-completion-r1 check-reqs flag-o-matic java-pkg-opt-2 mult
 DESCRIPTION="A full office productivity suite"
 HOMEPAGE="https://www.libreoffice.org"
 SRC_URI="branding? ( https://dev.gentoo.org/~dilfridge/distfiles/${BRANDING} )"
-[[ -n ${PATCHSET} ]] && SRC_URI+=" https://dev.gentoo.org/~asturm/distfiles/${PATCHSET}"
+[[ -n ${PATCHSET} ]] && SRC_URI+=" https://dev.gentoo.org/~xen0n/distfiles/app-office/libreoffice/${PATCHSET}"
 
 # Split modules following git/tarballs; Core MUST be first!
 # Help is used for the image generator
@@ -44,8 +44,6 @@ unset DEV_URI
 # These are bundles that can't be removed for now due to huge patchsets.
 # If you want them gone, patches are welcome.
 ADDONS_SRC=(
-	# not packaged in Gentoo, https://github.com/efficient/libcuckoo/
-	"${ADDONS_URI}/libcuckoo-93217f8d391718380c508a722ab9acd5e9081233.tar.gz"
 	# broken against latest upstream release, too many patches on top:
 	# https://github.com/tdf/libcmis/pull/43
 	"${ADDONS_URI}/libcmis-0.5.2.tar.xz"
@@ -105,7 +103,7 @@ LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
 
 [[ ${MY_PV} == *9999* ]] || \
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux"
+KEYWORDS="amd64 ~arm ~arm64 ~loong ~ppc64 x86 ~amd64-linux"
 
 COMMON_DEPEND="${PYTHON_DEPS}
 	app-arch/unzip
@@ -133,7 +131,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	>=dev-cpp/libcmis-0.5.2
 	dev-db/unixODBC
 	dev-lang/perl
-	>=dev-libs/boost-1.72.0:=[nls]
+	dev-libs/boost:=[nls]
 	dev-libs/expat
 	dev-libs/hyphen
 	dev-libs/icu:=
@@ -163,7 +161,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	>=media-libs/libvisio-0.1.0
 	media-libs/libzmf
 	media-libs/openjpeg:=
-	media-libs/zxing-cpp
+	media-libs/zxing-cpp:=
 	>=net-libs/neon-0.31.1:=
 	net-misc/curl
 	sci-mathematics/lpsolve
@@ -217,7 +215,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	libreoffice_extensions_scripting-javascript? ( >=dev-java/rhino-1.7.14:1.6 )
 	mariadb? ( dev-db/mariadb-connector-c:= )
 	!mariadb? ( dev-db/mysql-connector-c:= )
-	pdfimport? ( app-text/poppler:=[cxx] )
+	pdfimport? ( >=app-text/poppler-22.06:=[cxx] )
 	postgres? ( >=dev-db/postgresql-9.0:*[kerberos] )
 "
 # FIXME: cppunit should be moved to test conditional
@@ -237,10 +235,7 @@ DEPEND="${COMMON_DEPEND}
 	x11-libs/libXtst
 	java? (
 		dev-java/ant-core
-		|| (
-			dev-java/openjdk:11
-			dev-java/openjdk-bin:11
-		)
+		>=virtual/jdk-11
 	)
 	test? (
 		app-crypt/gnupg
@@ -256,31 +251,27 @@ RDEPEND="${COMMON_DEPEND}
 	!app-office/libreoffice-bin-debug
 	media-fonts/liberation-fonts
 	|| ( x11-misc/xdg-utils kde-plasma/kde-cli-tools )
-	java? ( || (
-		dev-java/openjdk:11
-		dev-java/openjdk-jre-bin:11
-		>=virtual/jre-1.8
-	) )
+	java? ( >=virtual/jre-11 )
 	kde? ( kde-frameworks/breeze-icons:* )
 "
 BDEPEND="
 	dev-util/intltool
+	sys-apps/which
 	sys-devel/bison
 	sys-devel/flex
 	sys-devel/gettext
 	virtual/pkgconfig
 	clang? (
 		|| (
-			(
-				sys-devel/clang:14
+			(	sys-devel/clang:15
+				sys-devel/llvm:15
+				=sys-devel/lld-15*	)
+			(	sys-devel/clang:14
 				sys-devel/llvm:14
 				=sys-devel/lld-14*	)
 			(	sys-devel/clang:13
 				sys-devel/llvm:13
 				=sys-devel/lld-13*	)
-			(	sys-devel/clang:12
-				sys-devel/llvm:12
-				=sys-devel/lld-12*	)
 		)
 	)
 	odk? ( >=app-doc/doxygen-1.8.4 )
@@ -294,22 +285,19 @@ else
 fi
 
 PATCHES=(
-	# "${WORKDIR}"/${PATCHSET/.tar.xz/}
+	"${WORKDIR}"/${PATCHSET/.tar.xz/}
 
 	# not upstreamable stuff
 	"${FILESDIR}/${PN}-5.3.4.2-kioclient5.patch"
 	"${FILESDIR}/${PN}-6.1-nomancompress.patch"
 	"${FILESDIR}/${PN}-7.2.0.4-qt5detect.patch"
 
-	# TODO: upstream
-	"${FILESDIR}/${PN}-7.2.6.2-poppler-22.03.0.patch" # by Archlinux
-	"${FILESDIR}/${PN}-7.3.3.2-Import-FreeBSD-patch-for-Poppler-22.04.0-build.patch" # from FreeBSD
-	"${FILESDIR}/${PN}-7.3.3.2-Add-missing-nSize-set-for-Poppler-22.04.0.patch" # fixup for FreeBSD patch
+	# 7.4 branch
+	"${FILESDIR}/${PN}-7.3.5.2-gpgme-1.18.0.patch"
 
 	# musl compatibility by AlpineLinux
-	"${FILESDIR}/${PN}-7.3.4.2-linux-musl.patch"
-	"${FILESDIR}/${PN}-7.3.4.2-disable-liborcus-unittest.patch"
-	"${FILESDIR}/${PN}-6.1.4.2-musl-stacksize.patch"
+	"${FILESDIR}/${PN}-7.3.7.2-linux-musl.patch"
+	"${FILESDIR}/${PN}-7.3.7.2-musl-stacksize.patch"
 )
 
 S="${WORKDIR}/${PN}-${MY_PV}"
@@ -325,16 +313,10 @@ _check_reqs() {
 }
 
 pkg_pretend() {
-	if use x86; then
-		elog "Unfortunately for packaging reasons on x86, various Java-based wizards,"
-		elog "most notably Report Builder in LibreOffice Base, will not be available."
-		elog "See also: https://bugs.gentoo.org/785640"
-	else
-		use base ||
-			ewarn "If you plan to use Base application you must enable USE base."
-		use java ||
-			ewarn "Without USE java, several wizards are not going to be available."
-	fi
+	use base ||
+		ewarn "If you plan to use Base application you must enable USE base."
+	use java ||
+		ewarn "Without USE java, several wizards are not going to be available."
 
 	[[ ${MERGE_TYPE} != binary ]] && _check_reqs pkg_pretend
 }
@@ -528,7 +510,6 @@ src_configure() {
 		--with-help="html"
 		--without-helppack-integration
 		--with-system-gpgmepp
-		--without-system-cuckoo
 		--without-system-jfreereport
 		--without-system-libcmis
 		--without-system-sane
@@ -578,12 +559,8 @@ src_configure() {
 			--without-junit
 			--without-system-hsqldb
 			--with-ant-home="${ANT_HOME}"
+			--with-jdk-home="${JAVA_HOME}"
 		)
-		if has_version "dev-java/openjdk:11"; then
-			myeconfargs+=( --with-jdk-home="${EPREFIX}/usr/$(get_libdir)/openjdk-11" )
-		elif has_version "dev-java/openjdk-bin:11"; then
-			myeconfargs+=( --with-jdk-home="${EPREFIX}/opt/openjdk-bin-11" )
-		fi
 
 		use libreoffice_extensions_scripting-beanshell && \
 			myeconfargs+=( --with-beanshell-jar=$(java-pkg_getjar bsh bsh.jar) )
@@ -609,12 +586,11 @@ src_compile() {
 }
 
 src_test() {
-	make unitcheck || die
-	make slowcheck || die
+	emake unitcheck
+	emake slowcheck
 }
 
 src_install() {
-	# This is not Makefile so no buildserver
 	emake DESTDIR="${D}" distro-pack-install -o build -o check
 
 	# bug 593514
