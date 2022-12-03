@@ -1,9 +1,8 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-CMAKE_ECLASS=cmake
 inherit cmake-multilib flag-o-matic
 
 # wrap the config script
@@ -18,7 +17,7 @@ if [[ ${PV} == "9999" ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://dev.mysql.com/get/Downloads/MySQL-$(ver_cut 1-2)/mysql-boost-${PV}.tar.gz"
-	KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc x86"
+	KEYWORDS="~alpha amd64 ~arm ~arm64 ~hppa ~ia64 ~loong ~mips ~ppc ~ppc64 ~riscv ~s390 sparc x86"
 
 	S="${WORKDIR}/mysql-${PV}"
 fi
@@ -50,7 +49,7 @@ DOCS=( README )
 PATCHES=(
 	"${FILESDIR}"/${PN}-8.0.22-always-build-decompress-utilities.patch
 	"${FILESDIR}"/${PN}-8.0.19-do-not-install-comp_err.patch
-	"${FILESDIR}"/${PN}-8.0.22-musl-dns.patch
+	"${FILESDIR}"/${PN}-8.0.27-res_n.patch
 )
 
 src_prepare() {
@@ -85,8 +84,8 @@ src_prepare() {
 multilib_src_configure() {
 	CMAKE_BUILD_TYPE="RelWithDebInfo"
 
-	# code is not C++17 ready, bug #786402
-	append-cxxflags -std=c++14
+	# Code is now requiring C++17 due to https://github.com/mysql/mysql-server/commit/236ab55bedd8c9eacd80766d85edde2a8afacd08
+	append-cxxflags -std=c++17
 
 	local mycmakeargs=(
 		-DCMAKE_C_FLAGS_RELWITHDEBINFO=-DNDEBUG
@@ -98,6 +97,7 @@ multilib_src_configure() {
 		-DMYSQL_UNIX_ADDR="${EPREFIX}/run/mysqld/mysqld.sock"
 		-DWITH_LZ4=system
 		-DWITH_NUMA=OFF
+		-DWITH_BUILD_ID=OFF
 		-DWITH_SSL=system
 		-DWITH_ZLIB=system
 		-DWITH_ZSTD=system
