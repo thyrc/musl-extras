@@ -1,8 +1,0 @@
---- a/efi/wrapper.h	2018-02-26 23:13:48.942186601 +0100
-+++ b/efi/wrapper.h	2018-02-26 23:13:00.766202868 +0100
-@@ -1,3 +1,5 @@
-+#include <stdint.h>
-+
- #ifndef EFI_WRAPPER_H
- #define EFI_WRAPPER_H
-
